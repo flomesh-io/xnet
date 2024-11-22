@@ -1,0 +1,15 @@
+#ifndef __FSM_SIDECAR_CONFIG_H__
+#define __FSM_SIDECAR_CONFIG_H__
+
+#define FSM_CNI_PASS_PROG_ID (0)
+#define FSM_CNI_DROP_PROG_ID (1)
+#define FSM_PROGS_MAP_ENTRIES (2)
+
+#define FSM_FLOW_MAP_ENTRIES (1024 * 1024)
+#define FSM_ACL_MAP_ENTRIES (4 * 1024)
+#define FSM_NAT_MAP_ENTRIES (64)
+#define FSM_NAT_MAX_ENDPOINTS (128)
+
+#define FSM_TRACE_MAP_ENTRIES (16)
+
+#endif

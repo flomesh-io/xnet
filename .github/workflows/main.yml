@@ -1,0 +1,105 @@
+name: Go
+on:
+  push:
+    branches:
+      - main
+      - release-v*
+      - release/v*
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "**.h"
+      - "**.c"
+      - "**.ppt"
+      - "CODEOWNERS"
+      - "OWNERS"
+  pull_request:
+    branches:
+      - main
+      - release-v*
+      - release/v*
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "CODEOWNERS"
+      - "OWNERS"
+env:
+  CI_WAIT_FOR_OK_SECONDS: 60
+  CI_MAX_ITERATIONS_THRESHOLD: 60
+  CI_CLIENT_CONCURRENT_CONNECTIONS: 1
+  CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
+  CI_MIN_SUCCESS_THRESHOLD: 1
+  FSM_HUMAN_DEBUG_LOG: true
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: ShellCheck
+        run: shellcheck -x $(find . -name '*.sh')
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61
+          args: --allow-parallel-runners=true --tests=false --timeout=5m
+
+  codegen:
+    name: Codegen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: go mod tidy
+        run: make -f Makefile.cli.mk go-mod-tidy
+
+  build:
+    name: Go build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Go Build
+        run: make -f Makefile.cli.mk build-cli
+
+  images:
+    name: Docker Images
+    runs-on: ubuntu-latest
+    if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-')) && github.event_name == 'push' }}
+    env:
+      CTR_REGISTRY: ${{ secrets.RELEASE_REGISTRY }}
+      CTR_TAG: latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Login to DockerHub
+        uses: docker/login-action@v3.3.0
+        with:
+          username: ${{ secrets.RELEASE_DOCKER_USER }}
+          password: ${{ secrets.RELEASE_DOCKER_PASS }}
+      - name: Push images with "latest" tag
+        run: make docker-build-cross
