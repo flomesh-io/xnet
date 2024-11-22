@@ -102,4 +102,6 @@ jobs:
           username: ${{ secrets.RELEASE_DOCKER_USER }}
           password: ${{ secrets.RELEASE_DOCKER_PASS }}
       - name: Push images with "latest" tag
+        env:
+          CTR_TAG: latest
         run: make docker-build-cross
