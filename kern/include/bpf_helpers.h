@@ -147,7 +147,7 @@ INTERNAL(int)
 xpkt_tail_call(skb_t *skb, xpkt_t *pkt, __u32 prog_id)
 {
     int idx = 0;
-    bpf_map_update_elem(&fsm_cxpkt, &idx, pkt, BPF_ANY);
+    bpf_map_update_elem(&fsm_xpkt, &idx, pkt, BPF_ANY);
     bpf_tail_call(skb, &fsm_prog, prog_id);
     return TC_ACT_OK;
 }

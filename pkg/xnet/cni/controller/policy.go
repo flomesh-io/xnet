@@ -21,7 +21,7 @@ var (
 	supportedProtos = []corev1.Protocol{corev1.ProtocolTCP, corev1.ProtocolUDP}
 	supportedTcdirs = []maps.TcDir{maps.TC_DIR_IGR, maps.TC_DIR_EGR}
 
-	policies map[corev1.Protocol]map[maps.TcDir]*NatPolicy = nil
+	natPolicies map[corev1.Protocol]map[maps.TcDir]*NatPolicy = nil
 )
 
 type NatPolicy struct {
@@ -67,7 +67,7 @@ func init() {
 	udpEgrNatKey.V6 = 0
 	udpEgrPolicy.natKey = udpEgrNatKey
 
-	policies = map[corev1.Protocol]map[maps.TcDir]*NatPolicy{
+	natPolicies = map[corev1.Protocol]map[maps.TcDir]*NatPolicy{
 		corev1.ProtocolTCP: {
 			maps.TC_DIR_IGR: tcpIgrPolicy,
 			maps.TC_DIR_EGR: tcpEgrPolicy,
@@ -80,9 +80,49 @@ func init() {
 }
 
 func (s *server) configPolicies() {
+	s.configAclPolicies()
+	s.configNatPolicies()
+}
+
+func (s *server) configAclPolicies() {
+	ifi, brv4Addrs, hwAddr, err := s.getBridgeAddrs(bridgeDev)
+	if err != nil {
+		log.Fatal().Err(err).Msg(`invalid bridge eth: cni0`)
+	} else {
+		brKey := new(maps.IFaceKey)
+		brKey.Len = uint8(len(bridgeDev))
+		copy(brKey.Name[0:brKey.Len], bridgeDev)
+		brVal := new(maps.IFaceVal)
+		brVal.Ifi = uint32(ifi)
+		copy(brVal.Mac[:], hwAddr[:])
+		if len(brv4Addrs) > 0 {
+			brVal.Addr[0], _ = util.IPv4ToInt(brv4Addrs[0])
+		}
+		if err := maps.AddIFaceEntry(brKey, brVal); err != nil {
+			log.Error().Err(err).Msgf(`failed to add iface: %s`, brKey.String())
+		}
+
+		for _, addrv4 := range brv4Addrs {
+			aclKey := new(maps.AclKey)
+			aclKey.Addr[0], _ = util.IPv4ToInt(addrv4)
+
+			aclVal := new(maps.AclVal)
+			aclVal.Flag = bridgeAclFlag
+			aclVal.Id = bridgeAclId
+			aclKey.Port = util.HostToNetShort(0)
+			aclVal.Acl = uint8(maps.ACL_TRUSTED)
+			aclKey.Proto = uint8(maps.IPPROTO_TCP)
+			if err := maps.AddAclEntry(aclKey, aclVal); err != nil {
+				log.Error().Err(err).Msgf(`failed to add acl: %s`, aclKey.String())
+			}
+		}
+	}
+}
+
+func (s *server) configNatPolicies() {
 	for _, proto := range supportedProtos {
 		for _, tcdir := range supportedTcdirs {
-			policies[proto][tcdir].natVal = new(maps.NatVal)
+			natPolicies[proto][tcdir].natVal = new(maps.NatVal)
 		}
 	}
 
@@ -120,12 +160,12 @@ func (s *server) configPolicies() {
 					portBe := util.HostToNetShort(portLe)
 					if s.isTargetPort(port, s.filterPortInbound) {
 						trustedAddrs[podAddrNb][portBe] = uint8(maps.ACL_AUDIT)
-						policies[corev1Protos[port.Protocol]][maps.TC_DIR_IGR].natVal.
+						natPolicies[corev1Protos[port.Protocol]][maps.TC_DIR_IGR].natVal.
 							AddEp(podAddr, portLe, podMac, false)
 					}
 					if s.isTargetPort(port, s.filterPortOutbound) {
 						trustedAddrs[podAddrNb][portBe] = uint8(maps.ACL_AUDIT)
-						policies[corev1Protos[port.Protocol]][maps.TC_DIR_EGR].natVal.
+						natPolicies[corev1Protos[port.Protocol]][maps.TC_DIR_EGR].natVal.
 							AddEp(podAddr, portLe, podMac, false)
 					}
 				}
@@ -169,7 +209,7 @@ func (s *server) configPolicies() {
 
 	for _, proto := range supportedProtos {
 		for _, tcdir := range supportedTcdirs {
-			policy := policies[proto][tcdir]
+			policy := natPolicies[proto][tcdir]
 			chash, _ := hashstructure.Hash(policy.natVal, hashstructure.FormatV2,
 				&hashstructure.HashOptions{
 					ZeroNil:         true,

@@ -12,4 +12,6 @@
 
 #define FSM_TRACE_MAP_ENTRIES (16)
 
+#define FSM_IFACE_MAP_ENTRIES (128)
+
 #endif

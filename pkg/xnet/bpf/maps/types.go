@@ -27,6 +27,9 @@ type OptVal FsmFlowT
 type CfgKey uint32
 type CfgVal FsmCfgT
 
+type IFaceKey FsmIfNameT
+type IFaceVal FsmIfInfoT
+
 type TraceIPKey FsmTrIpT
 type TraceIPVal FsmTrOpT
 
@@ -72,8 +75,10 @@ const (
 	CfgFlagOffsetIPv6ProtoDenyAll uint8 = iota
 	CfgFlagOffsetIPv4TCPProtoDenyAll
 	CfgFlagOffsetIPv4TCPProtoAllowAll
+	CfgFlagOffsetIPv4TCPProtoAllowNatEscape
 	CfgFlagOffsetIPv4UDPProtoDenyAll
 	CfgFlagOffsetIPv4UDPProtoAllowAll
+	CfgFlagOffsetIPv4UDPProtoAllowNatEscape
 	CfgFlagOffsetIPv4OTHProtoDenyAll
 	CfgFlagOffsetIPv4TCPNatByIpPortOn
 	CfgFlagOffsetIPv4TCPNatByIpOn
@@ -103,8 +108,10 @@ var flagNames = [CfgFlagMax]string{
 	"ipv6_proto_deny_all",
 	"ipv4_tcp_proto_deny_all",
 	"ipv4_tcp_proto_allow_all",
+	"ipv4_tcp_proto_allow_nat_escape",
 	"ipv4_udp_proto_deny_all",
 	"ipv4_udp_proto_allow_all",
+	"ipv4_udp_proto_allow_nat_escape",
 	"ipv4_oth_proto_deny_all",
 	"ipv4_tcp_nat_by_ip_port_on",
 	"ipv4_tcp_nat_by_ip_on",

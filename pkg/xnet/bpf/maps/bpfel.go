@@ -76,6 +76,17 @@ type FsmFlowT struct {
 	V6    uint8
 }
 
+type FsmIfInfoT struct {
+	Ifi  uint32
+	Addr [4]uint32
+	Mac  [6]uint8
+}
+
+type FsmIfNameT struct {
+	Len  uint8
+	Name [16]uint8
+}
+
 type FsmNatKeyT struct {
 	Daddr [4]uint32
 	Dport uint16
