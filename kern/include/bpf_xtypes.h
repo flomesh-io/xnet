@@ -12,8 +12,10 @@ typedef struct xpkt_mesh_cfg_t {
             __u64 ipv6_proto_deny_all : 1;
             __u64 ipv4_tcp_proto_deny_all : 1;
             __u64 ipv4_tcp_proto_allow_all : 1;
+            __u64 ipv4_tcp_proto_allow_nat_escape : 1;
             __u64 ipv4_udp_proto_deny_all : 1;
             __u64 ipv4_udp_proto_allow_all : 1;
+            __u64 ipv4_udp_proto_allow_nat_escape : 1;
             __u64 ipv4_oth_proto_deny_all : 1;
             __u64 ipv4_tcp_nat_by_ip_port_on : 1;
             __u64 ipv4_tcp_nat_by_ip_on : 1;
@@ -265,4 +267,14 @@ typedef struct xpkt_trace_op_t {
     __u8 tc_dir[TC_DIR_MAX];
 } __attribute__((packed)) tr_op_t;
 
+typedef struct xpkt_if_name_t {
+    __u8 len;
+    __u8 name[IFNAMSIZ];
+} __attribute__((packed)) if_name_t;
+
+typedef struct xpkt_if_info_t {
+    __u32 ifi;
+    __u32 addr[IP_ALEN];
+    __u8 mac[ETH_ALEN];
+} __attribute__((packed)) if_info_t;
 #endif

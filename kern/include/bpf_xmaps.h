@@ -21,7 +21,7 @@ struct {
 #endif
 
 #ifdef LEGACY_BPF_MAPS
-struct bpf_map_def SEC("maps") fsm_cxpkt = {
+struct bpf_map_def SEC("maps") fsm_xpkt = {
     .type = BPF_MAP_TYPE_PERCPU_ARRAY,
     .key_size = sizeof(__u32),
     .value_size = sizeof(xpkt_t),
@@ -33,7 +33,7 @@ struct {
     __type(key, __u32);
     __type(value, xpkt_t);
     __uint(max_entries, 1);
-} fsm_cxpkt SEC(".maps");
+} fsm_xpkt SEC(".maps");
 #endif
 
 #ifdef LEGACY_BPF_MAPS
@@ -69,7 +69,7 @@ struct {
 #endif
 
 #ifdef LEGACY_BPF_MAPS
-struct bpf_map_def SEC("maps") fsm_cflop = {
+struct bpf_map_def SEC("maps") fsm_xflop = {
     .type = BPF_MAP_TYPE_PERCPU_ARRAY,
     .key_size = sizeof(__u32),
     .value_size = sizeof(flow_op_t),
@@ -81,7 +81,7 @@ struct {
     __type(key, __u32);
     __type(value, flow_op_t);
     __uint(max_entries, 2);
-} fsm_cflop SEC(".maps");
+} fsm_xflop SEC(".maps");
 #endif
 
 #ifdef LEGACY_BPF_MAPS
@@ -203,6 +203,24 @@ struct {
     __uint(max_entries, FSM_TRACE_MAP_ENTRIES);
     __uint(map_flags, BPF_F_NO_PREALLOC);
 } fsm_trpt SEC(".maps");
+#endif
+
+#ifdef LEGACY_BPF_MAPS
+struct bpf_map_def SEC("maps") fsm_xifs = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(if_name_t),
+    .value_size = sizeof(if_info_t),
+    .max_entries = FSM_IFACE_MAP_ENTRIES,
+    .map_flags = BPF_F_NO_PREALLOC,
+};
+#else /* BTF definitions */
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, if_name_t);
+    __type(value, if_info_t);
+    __uint(max_entries, FSM_IFACE_MAP_ENTRIES);
+    __uint(map_flags, BPF_F_NO_PREALLOC);
+} fsm_xifs SEC(".maps");
 #endif
 
 #endif

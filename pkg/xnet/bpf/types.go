@@ -13,6 +13,7 @@ const (
 	FSM_MAP_NAME_TCP_OPT    = `fsm_topt`
 	FSM_MAP_NAME_UDP_OPT    = `fsm_uopt`
 	FSM_MAP_NAME_CFG        = `fsm_xcfg`
+	FSM_MAP_NAME_IFS        = `fsm_xifs`
 	FSM_MAP_NAME_TRACE_IP   = `fsm_trip`
 	FSM_MAP_NAME_TRACE_PORT = `fsm_trpt`
 )

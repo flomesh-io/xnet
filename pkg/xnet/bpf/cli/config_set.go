@@ -13,8 +13,10 @@ type configSetCmd struct {
 	ipv6ProtoDenyAll             int8
 	ipv4TCPProtoDenyAll          int8
 	ipv4TCPProtoAllowAll         int8
+	ipv4TCPProtoAllowNatEscape   int8
 	ipv4UDPProtoDenyAll          int8
 	ipv4UDPProtoAllowAll         int8
+	ipv4UDPProtoAllowNatEscape   int8
 	ipv4OTHProtoDenyAll          int8
 	ipv4TCPNatByIpPortOn         int8
 	ipv4TCPNatByIpOn             int8
@@ -62,8 +64,10 @@ func newConfigSet() *cobra.Command {
 	f.Int8Var(&configSet.ipv6ProtoDenyAll, "ipv6_proto_deny_all", -1, "--ipv6_proto_deny_all=0/1")
 	f.Int8Var(&configSet.ipv4TCPProtoDenyAll, "ipv4_tcp_proto_deny_all", -1, "--ipv4_tcp_proto_deny_all=0/1")
 	f.Int8Var(&configSet.ipv4TCPProtoAllowAll, "ipv4_tcp_proto_allow_all", -1, "--ipv4_tcp_proto_allow_all=0/1")
+	f.Int8Var(&configSet.ipv4TCPProtoAllowNatEscape, "ipv4_tcp_proto_allow_nat_escape", -1, "--ipv4_tcp_proto_allow_nat_escape=0/1")
 	f.Int8Var(&configSet.ipv4UDPProtoDenyAll, "ipv4_udp_proto_deny_all", -1, "--ipv4_udp_proto_deny_all=0/1")
 	f.Int8Var(&configSet.ipv4UDPProtoAllowAll, "ipv4_udp_proto_allow_all", -1, "--ipv4_udp_proto_allow_all=0/1")
+	f.Int8Var(&configSet.ipv4UDPProtoAllowNatEscape, "ipv4_udp_proto_allow_nat_escape", -1, "--ipv4_udp_proto_allow_nat_escape=0/1")
 	f.Int8Var(&configSet.ipv4OTHProtoDenyAll, "ipv4_oth_proto_deny_all", -1, "--ipv4_oth_proto_deny_all=0/1")
 	f.Int8Var(&configSet.ipv4TCPNatByIpPortOn, "ipv4_tcp_nat_by_ip_port_on", -1, "--ipv4_tcp_nat_by_ip_port_on=0/1")
 	f.Int8Var(&configSet.ipv4TCPNatByIpOn, "ipv4_tcp_nat_by_ip_on", -1, "--ipv4_tcp_nat_by_ip_on=0/1")
@@ -245,6 +249,12 @@ func (a *configSetCmd) setProto(cfgVal *maps.CfgVal) {
 		cfgVal.Clear(maps.CfgFlagOffsetIPv4TCPProtoAllowAll)
 	}
 
+	if a.ipv4TCPProtoAllowNatEscape == 1 {
+		cfgVal.Set(maps.CfgFlagOffsetIPv4TCPProtoAllowNatEscape)
+	} else if a.ipv4TCPProtoAllowNatEscape == 0 {
+		cfgVal.Clear(maps.CfgFlagOffsetIPv4TCPProtoAllowNatEscape)
+	}
+
 	if a.ipv4UDPProtoDenyAll == 1 {
 		cfgVal.Set(maps.CfgFlagOffsetIPv4UDPProtoDenyAll)
 	} else if a.ipv4UDPProtoDenyAll == 0 {
@@ -255,6 +265,12 @@ func (a *configSetCmd) setProto(cfgVal *maps.CfgVal) {
 		cfgVal.Set(maps.CfgFlagOffsetIPv4UDPProtoAllowAll)
 	} else if a.ipv4UDPProtoAllowAll == 0 {
 		cfgVal.Clear(maps.CfgFlagOffsetIPv4UDPProtoAllowAll)
+	}
+
+	if a.ipv4UDPProtoAllowNatEscape == 1 {
+		cfgVal.Set(maps.CfgFlagOffsetIPv4UDPProtoAllowNatEscape)
+	} else if a.ipv4UDPProtoAllowNatEscape == 0 {
+		cfgVal.Clear(maps.CfgFlagOffsetIPv4UDPProtoAllowNatEscape)
 	}
 
 	if a.ipv4OTHProtoDenyAll == 1 {
