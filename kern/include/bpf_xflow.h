@@ -169,8 +169,8 @@ xpkt_flow_proc_frag(xpkt_t *pkt, void *fsm_xflow, flow_t *cflow, flow_t *rflow,
     flow_op_t *ucop, *urop;
     int cidx = 0, ridx = 1;
 
-    ucop = bpf_map_lookup_elem(&fsm_cflop, &cidx);
-    urop = bpf_map_lookup_elem(&fsm_cflop, &ridx);
+    ucop = bpf_map_lookup_elem(&fsm_xflop, &cidx);
+    urop = bpf_map_lookup_elem(&fsm_xflop, &ridx);
     if (ucop == NULL || urop == NULL || pkt->v6) {
         return 0;
     }
@@ -205,7 +205,7 @@ xpkt_flow_init_reverse_op(xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
     rflow.proto = flow->proto;
     rflow.v6 = flow->v6;
 
-    rop = bpf_map_lookup_elem(&fsm_cflop, &ridx);
+    rop = bpf_map_lookup_elem(&fsm_xflop, &ridx);
     if (rop == NULL) {
         return 0;
     }
@@ -251,7 +251,7 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
     }
 
     flow = &pkt->flow;
-    op = bpf_map_lookup_elem(&fsm_cflop, &idx);
+    op = bpf_map_lookup_elem(&fsm_xflop, &idx);
     if (op == NULL) {
         return 0;
     }
@@ -293,7 +293,11 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
                 if (cfg->ipv4_trace_nat_on) {
                     FSM_DBG("[DBG] DROP BY NO NAT\n");
                 }
-                xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
+                if (cfg->ipv4_tcp_proto_allow_nat_escape) {
+                    xpkt_tail_call(skb, pkt, FSM_CNI_PASS_PROG_ID);
+                } else {
+                    xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
+                }
                 return 0;
             }
         }
@@ -318,7 +322,11 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
                 if (cfg->ipv4_trace_nat_on) {
                     FSM_DBG("[DBG] DROP BY NO NAT\n");
                 }
-                xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
+                if (cfg->ipv4_udp_proto_allow_nat_escape) {
+                    xpkt_tail_call(skb, pkt, FSM_CNI_PASS_PROG_ID);
+                } else {
+                    xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
+                }
                 return 0;
             }
         }

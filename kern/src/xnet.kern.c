@@ -247,7 +247,7 @@ SEC("classifier/sidecar/ingress")
 int sidecar_ingress(skb_t *skb)
 {
     int z = 0;
-    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_cxpkt, &z);
+    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
     if (!pkt) {
         return TC_ACT_SHOT;
     }
@@ -263,7 +263,7 @@ SEC("classifier/sidecar/egress")
 int sidecar_egress(skb_t *skb)
 {
     int z = 0;
-    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_cxpkt, &z);
+    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
     if (!pkt) {
         return TC_ACT_SHOT;
     }

@@ -51,7 +51,7 @@ go-generate: export BPF_CFLAGS := $(BPF_CFLAGS)
 go-generate: export BPF_INC_DIR := $(INC_DIR)
 go-generate: export BPF_SRC_DIR := $(SRC_DIR)
 go-generate:
-	@go generate .gen/fsm.go
+	@go generate .gen/xnet.go
 
 .PHONY: go-test-coverage
 go-test-coverage:
