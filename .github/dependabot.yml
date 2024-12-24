@@ -5,3 +5,43 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+      time: "06:00"
+      timezone: "Asia/Shanghai"
+    assignees:
+      - "reaver-flomesh"
+    labels:
+      - "area/xnet"
+      - "enhancement"
+      - "github-actions"
+    # Milestone v1.5.0
+    milestone: 1
+    groups:
+      actions-deps:
+        patterns:
+          - "*"
+  # Maintain dependencies for Golang
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+      timezone: "Asia/Shanghai"
+    assignees:
+      - "reaver-flomesh"
+    labels:
+      - "area/xnet"
+      - "enhancement"
+      - "dependencies"
+    # Milestone v1.5.0
+    milestone: 1
+    groups:
+      k8s:
+        patterns:
+          - "k8s.io/*"
+    ignore:
+      - dependency-name: "k8s.io/*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    open-pull-requests-limit: 10
+
