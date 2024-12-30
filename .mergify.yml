@@ -1,4 +1,14 @@
 pull_request_rules:
+  - name: Ping PR author when conflicting
+    description: Warn the pull request author when their PR are conflicting
+    conditions:
+      - conflict
+      - -closed
+    actions:
+      comment:
+        message: >
+          👋 {{author}} your PR is conflicting and needs to be updated to be
+          merged
   - name: Automatic squash and merge when CI passes and reviews approve
     conditions:
       - base=main
