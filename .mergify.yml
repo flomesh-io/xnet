@@ -13,8 +13,7 @@ pull_request_rules:
     conditions:
       - base=main
       - check-success=DCO
-      - check-success=CodeQL
-      - check-success=ShellCheck
+      - check-success=Shellcheck
       - check-success=Lint
       - check-success=Codegen
       - check-success=Go build
