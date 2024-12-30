@@ -1,39 +1,39 @@
-
 pull_request_rules:
+  - name: Ping PR author when conflicting
+    description: Warn the pull request author when their PR are conflicting
+    conditions:
+      - conflict
+      - -closed
+    actions:
+      comment:
+        message: >
+          👋 {{author}} your PR is conflicting and needs to be updated to be
+          merged
   - name: Automatic squash and merge when CI passes and reviews approve
     conditions:
-      # True if the base branch is main
       - base=main
-      # check-success are true if the check ran successfully
-      - "check-success=DCO"
-      - "check-success=CodeQL"
-      - "check-success=ShellCheck"
-      - "check-success=Lint"
-      - "check-success=Codegen"
-      - "check-success=Go build"
-      # True if the PR has at least 1 approving reviews
+      - check-success=DCO
+      - check-success=CodeQL
+      - check-success=ShellCheck
+      - check-success=Lint
+      - check-success=Codegen
+      - check-success=Go build
       - "#approved-reviews-by >= 1"
-      # True if the PR has the auto-squash label
       - label=auto-squash
-      # True if the PR does not have the wip label
       - -label=wip
-      # True if the PR does not have the do-not-merge/hold label
       - -label=do-not-merge/hold
     actions:
       merge:
-        # Squashes commits then merges PR
         method: squash
-
   - name: Rebase pull request when it's more than 3 commits behind main
     conditions:
       - base = main
       - "#commits-behind >= 3"
     actions:
       rebase:
-
   - name: Add a label auto-squash to the PR automatically
     conditions: []
     actions:
       label:
-        add: 
-          - "auto-squash"
+        add:
+          - auto-squash
