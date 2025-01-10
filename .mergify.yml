@@ -1,0 +1,84 @@
+pull_request_rules:
+  - name: Ping PR author when conflicting and Label conflicting pull requests
+    description: Warn the pull request author when their PR are conflicting, and add a label to a pull request with conflict to spot it easily
+    conditions:
+      - conflict
+      - -closed
+    actions:
+      comment:
+        message: >
+          👋 {{author}} your PR is conflicting and needs to be updated to be merged
+      label:
+        toggle:
+          - conflicts
+  - name: Automatic squash and merge when CI passes and reviews approve
+    conditions:
+      - base=main
+      - check-success=DCO
+      - check-success=Shellcheck
+      - check-success=Lint
+      - check-success=Codegen
+      - check-success=Go build
+      - "#approved-reviews-by >= 1"
+      - or:
+          - and:
+            - label=ok-to-merge
+            - label=squash
+          - label=ok-to-squash
+      - -label=wip
+      - -label=do-not-merge/hold
+    actions:
+      merge:
+        method: squash
+  - name: Rebase pull request when it's more than 3 commits behind main
+    conditions:
+      - base = main
+      - "#commits-behind >= 3"
+    actions:
+      rebase:
+  - name: Add a label area/xnet to the PR automatically
+    conditions: []
+    actions:
+      label:
+        add:
+          - area/xnet
+  - name: Comment when a pull request has unverified commits
+    conditions:
+      - -closed
+      - "#commits-unverified > 0"
+    actions:
+      comment:
+        message: |
+          ❗❗❗
+          All commits in this PR must be signed off. 
+          Please sign all commits by:
+          
+          ```shell
+          git rebase HEAD~{{ commits | length }} --signoff
+          git push --force-with-lease origin {{ head }}
+          ```
+merge_protections:
+  - name: Enforce conventional commit
+    description: Make sure that we follow https://www.conventionalcommits.org/en/v1.0.0/
+    if:
+      - base = main
+    success_conditions:
+      - "title ~= ^(\\[wip\\]|\\[backport\\]|\\[cherry-pick\\])?(
+        )?(fix|feat|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\\(.+\
+        \\))?:"
+  - name: Enforce verified commits
+    description: Make sure that we have verified commits
+    if:
+      - or:
+        - base=main
+        - base~=^release\/v
+    success_conditions:
+      - "#commits-unverified = 0"
+  - name: Enforce linear history
+    description: Make sure that we have a linear history, no merge commits are allowed
+    if:
+      - or:
+        - base=main
+        - base~=^release\/v
+    success_conditions:
+      - "linear-history"
