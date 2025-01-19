@@ -1,11 +1,9 @@
 package deliver
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"os"
 	"path"
 	"path/filepath"
@@ -24,16 +22,7 @@ import (
 type Installer struct {
 	workDir string
 
-	kubeConfigFilepath string
-	cniConfigFilepath  string
-}
-
-type kubeConfigFields struct {
-	KubernetesServiceProtocol string
-	KubernetesServiceHost     string
-	KubernetesServicePort     string
-	ServiceAccountToken       string
-	TLSConfig                 string
+	cniConfigFilepath string
 }
 
 // NewInstaller returns an instance of Installer with the given config
@@ -45,16 +34,8 @@ func NewInstaller(workDir string) *Installer {
 // If an invalid configuration is detected, the installation process will restart to restore a valid state.
 func (in *Installer) Run(ctx context.Context, cniReady chan struct{}) error {
 	for {
-		if err := in.copyBinaries(); err != nil {
-			return err
-		}
-
-		saToken, err := in.readServiceAccountToken()
+		err := in.copyBinaries()
 		if err != nil {
-			return err
-		}
-
-		if in.kubeConfigFilepath, err = in.createKubeConfigFile(saToken); err != nil {
 			return err
 		}
 
@@ -108,13 +89,6 @@ func (in *Installer) Cleanup() error {
 		}
 	}
 
-	if len(in.kubeConfigFilepath) > 0 && util.Exists(in.kubeConfigFilepath) {
-		log.Debug().Msgf("removing cni kube config file: %s", in.kubeConfigFilepath)
-		if err := os.Remove(in.kubeConfigFilepath); err != nil {
-			return err
-		}
-	}
-
 	log.Debug().Msg("removing existing binaries")
 	cniBinPath := path.Join(volume.CniBin.MountPath, cni.PluginName)
 	if util.Exists(cniBinPath) {
@@ -145,57 +119,8 @@ func (in *Installer) copyBinaries() error {
 	return nil
 }
 
-func (in *Installer) readServiceAccountToken() (string, error) {
-	if !util.Exists(volume.KubeToken.MountPath) {
-		return "", fmt.Errorf("service account token file %s does not exist", volume.KubeToken.MountPath)
-	}
-
-	token, err := os.ReadFile(volume.KubeToken.MountPath)
-	if err != nil {
-		return "", err
-	}
-
-	return string(token), nil
-}
-
-func (in *Installer) createKubeConfigFile(saToken string) (string, error) {
-	tpl, err := template.New("kubeconfig").Parse(cniConfigTemplate)
-	if err != nil {
-		return "", err
-	}
-
-	protocol := os.Getenv("KUBERNETES_SERVICE_PROTOCOL")
-	if protocol == "" {
-		protocol = "https"
-	}
-
-	tlsConfig := "insecure-skip-tls-verify: true"
-	fields := kubeConfigFields{
-		KubernetesServiceProtocol: protocol,
-		KubernetesServiceHost:     os.Getenv("KUBERNETES_SERVICE_HOST"),
-		KubernetesServicePort:     os.Getenv("KUBERNETES_SERVICE_PORT"),
-		ServiceAccountToken:       saToken,
-		TLSConfig:                 tlsConfig,
-	}
-
-	var buffer bytes.Buffer
-	if err = tpl.Execute(&buffer, fields); err != nil {
-		return "", err
-	}
-
-	kubeConfigFilepath := filepath.Join(volume.CniNetd.MountPath, kubeConfigFileName)
-	if err = util.AtomicWrite(kubeConfigFilepath, buffer.Bytes(), os.FileMode(0o600)); err != nil {
-		return "", err
-	}
-
-	return kubeConfigFilepath, nil
-}
-
 func (in *Installer) createCNIConfigFile(ctx context.Context) (string, error) {
-	cniConfig := fmt.Sprintf(`{"type": "%s","kubernetes": {"kubeconfig": "%s/%s"}}`,
-		cni.PluginName,
-		volume.CniNetd.HostPath,
-		kubeConfigFileName)
+	cniConfig := fmt.Sprintf(`{"type": "%s"}`, cni.PluginName)
 	return in.writeCNIConfig(ctx, []byte(cniConfig))
 }
 

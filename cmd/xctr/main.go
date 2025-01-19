@@ -40,11 +40,10 @@ var (
 	flushUDPConnTrackIdleSeconds int
 	flushUDPConnTrackBatchSize   int
 
-	nodePathKubeToken string
-	nodePathCniBin    string
-	nodePathCniNetd   string
-	nodePathSysFs     string
-	nodePathSysRun    string
+	nodePathCniBin  string
+	nodePathCniNetd string
+	nodePathSysFs   string
+	nodePathSysRun  string
 
 	rtScheme = runtime.NewScheme()
 
@@ -69,7 +68,6 @@ func init() {
 	flags.IntVar(&flushUDPConnTrackIdleSeconds, "flush-udp-conn-track-idle-seconds", 120, "flush udp conn track idle seconds")
 	flags.IntVar(&flushUDPConnTrackBatchSize, "flush-udp-conn-track-batch-size", 4096, "flush udp conn track batch size")
 
-	flags.StringVar(&nodePathKubeToken, "node-path-kube-token", "", "kube token node path")
 	flags.StringVar(&nodePathCniBin, "node-path-cni-bin", "", "cni bin node path")
 	flags.StringVar(&nodePathCniNetd, "node-path-cni-netd", "", "cni net-d node path")
 	flags.StringVar(&nodePathSysFs, "node-path-sys-fs", "", "sys fs node path")
@@ -84,9 +82,6 @@ func parseFlags() error {
 	}
 	_ = flag.CommandLine.Parse([]string{})
 
-	if len(nodePathKubeToken) > 0 {
-		volume.KubeToken.HostPath = nodePathKubeToken
-	}
 	if len(nodePathCniBin) > 0 {
 		volume.CniBin.HostPath = nodePathCniBin
 	}
