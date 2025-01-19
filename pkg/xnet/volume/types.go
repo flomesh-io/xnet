@@ -31,10 +31,4 @@ var (
 		HostPath:  "/var/lib/rancher/k3s/agent/etc/cni/net.d", //k3s
 		MountPath: "/host/cni/net.d",
 	}
-
-	KubeToken = HostMount{
-		//HostPath:  "/var/run/secrets/kubernetes.io/serviceaccount/token", //k8s
-		HostPath:  "/var/lib/rancher/k3s/server/token", //k3s
-		MountPath: "/host/kube/.token",
-	}
 )
