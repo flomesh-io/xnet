@@ -8,6 +8,14 @@ var (
 	log = logger.New("fsm-xnet-ebpf-maps")
 )
 
+const (
+	SysNoop = SysID(0)
+	SysMesh = SysID(1)
+	SysE4lb = SysID(2)
+)
+
+type SysID uint32
+
 type ProgKey uint32
 type ProgVal int
 

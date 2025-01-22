@@ -13,6 +13,7 @@ const natAddDescription = ``
 const natAddExample = ``
 
 type natAddCmd struct {
+	sys
 	nat
 }
 
@@ -33,6 +34,7 @@ func newNatAdd() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	natAdd.sys.addFlags(f)
 	natAdd.sa.addFlags(f)
 	natAdd.proto.addFlags(f)
 	natAdd.tc.addFlags(f)
@@ -55,12 +57,18 @@ func (a *natAddCmd) run() error {
 		if macErr != nil {
 			return fmt.Errorf(`invalid ep MAC address: %s`, a.ep.mac)
 		}
+		omac, omacErr := net.ParseMAC(a.ep.omac)
+		if omacErr != nil {
+			if len(a.ep.omac) > 0 {
+				return fmt.Errorf(`invalid ep OMAC address: %s`, a.ep.omac)
+			}
+		}
 		for _, natKey := range natKeys {
-			natVal, _ := maps.GetNatEntry(&natKey)
-			if _, err = natVal.AddEp(a.ep.addr, a.ep.port, mac, a.inactive); err != nil {
+			natVal, _ := maps.GetNatEntry(a.sysId(), &natKey)
+			if _, err = natVal.AddEp(a.ep.addr, a.ep.port, mac, a.ep.ofi, a.ep.oflags, omac, a.active); err != nil {
 				fmt.Printf(`add ep addr: %s port: %d fail: %s\n`, a.ep.addr, a.ep.port, err.Error())
 			} else {
-				if err = maps.AddNatEntry(&natKey, natVal); err != nil {
+				if err = maps.AddNatEntry(a.sysId(), &natKey, natVal); err != nil {
 					fmt.Printf(`add nat: {"key":%s,"value":%s} fail: %s`, natKey.String(), natVal.String(), err.Error())
 				}
 			}

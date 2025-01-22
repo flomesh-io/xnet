@@ -13,6 +13,7 @@ const traceIPAddDescription = ``
 const traceIPAddExample = ``
 
 type traceIPAddCmd struct {
+	sys
 	sa
 	tc
 }
@@ -34,6 +35,7 @@ func newTraceIPAdd() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	traceIPAdd.sys.addFlags(f)
 	traceIPAdd.sa.addAddrFlag(f)
 	traceIPAdd.tc.addFlags(f)
 
@@ -60,5 +62,5 @@ func (a *traceIPAddCmd) run() error {
 	} else {
 		traceVal.TcDir[maps.TC_DIR_EGR] = 0
 	}
-	return maps.AddTraceIPEntry(traceKey, traceVal)
+	return maps.AddTraceIPEntry(a.sysId(), traceKey, traceVal)
 }

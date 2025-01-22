@@ -17,7 +17,7 @@ func newConfigList() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "list",
-		Short:   "global configurations",
+		Short:   "list global configurations",
 		Long:    configListDescription,
 		Aliases: []string{"l", "ls"},
 		Args:    cobra.MinimumNArgs(0),

@@ -7,7 +7,8 @@ apt install -y clang llvm libelf-dev libbpf-dev clang-format
 ## 测试指令
 
 ```
-make -f Makefile.CLI.mk kern-trace
+mkdir bin
+make -f Makefile.cli.mk kern-trace
 
 make -f docs/tests/Makefile test-up
 make -f docs/tests/Makefile fgw-demo
@@ -33,7 +34,8 @@ make -f docs/tests/Makefile init-trace-ip-map
 make -f docs/tests/Makefile init-trace-port-map
 
 make -f docs/tests/Makefile show-prog-map
-make -f docs/tests/Makefile show-cfg-map
+make -f docs/tests/Makefile show-mesh-cfg
+make -f docs/tests/Makefile show-e4lb-cfg
 make -f docs/tests/Makefile show-nat-map
 make -f docs/tests/Makefile show-acl-map
 make -f docs/tests/Makefile show-tcp-flow-map

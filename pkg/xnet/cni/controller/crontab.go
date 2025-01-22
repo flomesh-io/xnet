@@ -12,7 +12,7 @@ const (
 	maxBatchSize   = 10240
 )
 
-func (s *server) idleTCPConnTrackFlush() {
+func (s *server) idleTCPConnTrackFlush(sysId maps.SysID) {
 	crontab := s.flushTCPConnTrackCrontab
 	idleSeconds := s.flushTCPConnTrackIdleSeconds
 	batchSize := s.flushTCPConnTrackBatchSize
@@ -39,7 +39,7 @@ func (s *server) idleTCPConnTrackFlush() {
 			false,
 		),
 		gocron.NewTask(func() {
-			s.flushIdleTCPConnTracks(idleSeconds, batchSize)
+			s.flushIdleTCPConnTracks(sysId, idleSeconds, batchSize)
 		}),
 	); err != nil {
 		log.Fatal().Err(err).Msg("failed to start cron job to flush idle tcp conn track")
@@ -51,7 +51,7 @@ func (s *server) idleTCPConnTrackFlush() {
 	<-s.stop
 }
 
-func (s *server) idleUDPConnTrackFlush() {
+func (s *server) idleUDPConnTrackFlush(sysId maps.SysID) {
 	crontab := s.flushUDPConnTrackCrontab
 	idleSeconds := s.flushUDPConnTrackIdleSeconds
 	batchSize := s.flushUDPConnTrackBatchSize
@@ -78,7 +78,7 @@ func (s *server) idleUDPConnTrackFlush() {
 			false,
 		),
 		gocron.NewTask(func() {
-			s.flushIdleUDPConnTracks(idleSeconds, batchSize)
+			s.flushIdleUDPConnTracks(sysId, idleSeconds, batchSize)
 		}),
 	); err != nil {
 		log.Fatal().Err(err).Msg("failed to start cron job to flush idle udp conn track")
@@ -90,22 +90,22 @@ func (s *server) idleUDPConnTrackFlush() {
 	<-s.stop
 }
 
-func (s *server) flushIdleTCPConnTracks(idleSeconds, batchSize int) {
+func (s *server) flushIdleTCPConnTracks(sysId maps.SysID, idleSeconds, batchSize int) {
 	var err error
 	items := batchSize
 	for items == batchSize {
-		if items, err = maps.FlushIdleTCPFlowEntries(idleSeconds, batchSize); err != nil {
+		if items, err = maps.FlushIdleTCPFlowEntries(sysId, idleSeconds, batchSize); err != nil {
 			log.Error().Err(err).Msg("failed to flush idle tcp flows")
 			break
 		}
 	}
 }
 
-func (s *server) flushIdleUDPConnTracks(idleSeconds, batchSize int) {
+func (s *server) flushIdleUDPConnTracks(sysId maps.SysID, idleSeconds, batchSize int) {
 	var err error
 	items := batchSize
 	for items == batchSize {
-		if items, err = maps.FlushIdleUDPFlowEntries(idleSeconds, batchSize); err != nil {
+		if items, err = maps.FlushIdleUDPFlowEntries(sysId, idleSeconds, batchSize); err != nil {
 			log.Error().Err(err).Msg("failed to flush idle tcp flows")
 			break
 		}

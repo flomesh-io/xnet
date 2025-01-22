@@ -15,7 +15,8 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/util"
 )
 
-func AddNatEntry(natKey *NatKey, natVal *NatVal) error {
+func AddNatEntry(sysId SysID, natKey *NatKey, natVal *NatVal) error {
+	natKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_NAT)
 	if natMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer natMap.Close()
@@ -32,7 +33,8 @@ func AddNatEntry(natKey *NatKey, natVal *NatVal) error {
 	}
 }
 
-func DelNatEntry(natKey *NatKey) error {
+func DelNatEntry(sysId SysID, natKey *NatKey) error {
+	natKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_NAT)
 	if natMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer natMap.Close()
@@ -46,7 +48,8 @@ func DelNatEntry(natKey *NatKey) error {
 	}
 }
 
-func GetNatEntry(natKey *NatKey) (*NatVal, error) {
+func GetNatEntry(sysId SysID, natKey *NatKey) (*NatVal, error) {
+	natKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_NAT)
 	if natMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer natMap.Close()
@@ -59,8 +62,8 @@ func GetNatEntry(natKey *NatKey) (*NatVal, error) {
 }
 
 func (t *NatKey) String() string {
-	return fmt.Sprintf(`{"daddr": "%s","dport": %d,"proto": "%s","v6": %t,"tc_dir": "%s"}`,
-		_ip_(t.Daddr[0]), _port_(t.Dport), _proto_(t.Proto), _bool_(t.V6), _tc_dir_(t.TcDir))
+	return fmt.Sprintf(`{"sys": "%s","daddr": "%s","dport": %d,"proto": "%s","v6": %t,"tc_dir": "%s"}`,
+		_sys_(t.Sys), _ip_(t.Daddr[0]), _port_(t.Dport), _proto_(t.Proto), _bool_(t.V6), _tc_dir_(t.TcDir))
 }
 
 func (t *NatVal) String() string {
@@ -73,14 +76,14 @@ func (t *NatVal) String() string {
 		if idx > 0 {
 			sb.WriteString(`,`)
 		}
-		sb.WriteString(fmt.Sprintf(`{"rmac": "%s","raddr": "%s","rport": %d,"inactive": %t}`,
-			_mac_(ep.Rmac[:]), _ip_(ep.Raddr[0]), _port_(ep.Rport), _bool_(ep.Inactive)))
+		sb.WriteString(fmt.Sprintf(`{"rmac": "%s","raddr": "%s","rport": %d,"ofi": %d,"oflags": %d,"omac_set": %t,"omac": "%s","active": %t}`,
+			_mac_(ep.Rmac[:]), _ip_(ep.Raddr[0]), _port_(ep.Rport), ep.Ofi, ep.Oflags, _bool_(ep.OmacSet), _mac_(ep.Omac[:]), _bool_(ep.Active)))
 	}
 	sb.WriteString(`]}`)
 	return sb.String()
 }
 
-func (t *NatVal) AddEp(raddr net.IP, rport uint16, rmac []uint8, inactive bool) (bool, error) {
+func (t *NatVal) AddEp(raddr net.IP, rport uint16, rmac []uint8, ofi, oflags uint32, omac []uint8, active bool) (bool, error) {
 	ipNb, err := util.IPv4ToInt(raddr)
 	if err != nil {
 		return false, err
@@ -92,10 +95,23 @@ func (t *NatVal) AddEp(raddr net.IP, rport uint16, rmac []uint8, inactive bool) 
 				for n := range t.Eps[idx].Rmac {
 					t.Eps[idx].Rmac[n] = rmac[n]
 				}
-				if inactive {
-					t.Eps[idx].Inactive = 1
+				t.Eps[idx].Ofi = ofi
+				t.Eps[idx].Oflags = oflags
+				if len(omac) > 0 {
+					t.Eps[idx].OmacSet = 0
+					for n := range t.Eps[idx].Omac {
+						t.Eps[idx].Omac[n] = omac[n]
+						if omac[n] > 0 {
+							t.Eps[idx].OmacSet = 1
+						}
+					}
 				} else {
-					t.Eps[idx].Inactive = 0
+					t.Eps[idx].OmacSet = 0
+				}
+				if active {
+					t.Eps[idx].Active = 1
+				} else {
+					t.Eps[idx].Active = 0
 				}
 				return true, nil
 			}
@@ -111,10 +127,23 @@ func (t *NatVal) AddEp(raddr net.IP, rport uint16, rmac []uint8, inactive bool) 
 	for n := range t.Eps[t.EpCnt].Rmac {
 		t.Eps[t.EpCnt].Rmac[n] = rmac[n]
 	}
-	if inactive {
-		t.Eps[t.EpCnt].Inactive = 1
+	t.Eps[t.EpCnt].Ofi = ofi
+	t.Eps[t.EpCnt].Oflags = oflags
+	if len(omac) > 0 {
+		t.Eps[t.EpCnt].OmacSet = 0
+		for n := range t.Eps[t.EpCnt].Omac {
+			t.Eps[t.EpCnt].Omac[n] = omac[n]
+			if omac[n] > 0 {
+				t.Eps[t.EpCnt].OmacSet = 1
+			}
+		}
 	} else {
-		t.Eps[t.EpCnt].Inactive = 0
+		t.Eps[t.EpCnt].OmacSet = 0
+	}
+	if active {
+		t.Eps[t.EpCnt].Active = 1
+	} else {
+		t.Eps[t.EpCnt].Active = 0
 	}
 	t.EpCnt++
 	return true, nil
@@ -148,15 +177,15 @@ func (t *NatVal) DelEp(raddr net.IP, rport uint16) error {
 	if hitIdx == lastIdx {
 		t.Eps[hitIdx].Raddr[0] = 0
 		t.Eps[hitIdx].Rport = 0
-		t.Eps[hitIdx].Inactive = 0
+		t.Eps[hitIdx].Active = 0
 	} else {
 		t.Eps[hitIdx].Raddr[0] = t.Eps[lastIdx].Raddr[0]
 		t.Eps[hitIdx].Rport = t.Eps[lastIdx].Rport
-		t.Eps[hitIdx].Inactive = t.Eps[lastIdx].Inactive
+		t.Eps[hitIdx].Active = t.Eps[lastIdx].Active
 
 		t.Eps[lastIdx].Raddr[0] = 0
 		t.Eps[lastIdx].Rport = 0
-		t.Eps[lastIdx].Inactive = 0
+		t.Eps[lastIdx].Active = 0
 	}
 
 	t.EpCnt--

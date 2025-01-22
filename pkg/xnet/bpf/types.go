@@ -19,14 +19,20 @@ const (
 )
 
 const (
-	FSM_CNI_PASS_PROG_KEY = uint32(0)
-	FSM_CNI_DROP_PROG_KEY = uint32(1)
+	FSM_PASS_PROG_KEY = uint32(0)
+	FSM_DROP_PROG_KEY = uint32(1)
 )
 
 const (
-	FSM_CNI_INGRESS_PROG_NAME = `classifier_sidecar_ingress`
-	FSM_CNI_EGRESS_PROG_NAME  = `classifier_sidecar_egress`
+	FSM_NOOP_INGRESS_PROG_NAME = `classifier_noop_ingress`
+	FSM_NOOP_EGRESS_PROG_NAME  = `classifier_noop_egress`
 
-	FSM_CNI_PASS_PROG_NAME = `classifier_pass`
-	FSM_CNI_DROP_PROG_NAME = `classifier_drop`
+	FSM_MESH_INGRESS_PROG_NAME = `classifier_mesh_ingress`
+	FSM_MESH_EGRESS_PROG_NAME  = `classifier_mesh_egress`
+
+	FSM_E4LB_INGRESS_PROG_NAME = `classifier_e4lb_ingress`
+	FSM_E4LB_EGRESS_PROG_NAME  = `classifier_e4lb_egress`
+
+	FSM_PASS_PROG_NAME = `classifier_pass`
+	FSM_DROP_PROG_NAME = `classifier_drop`
 )

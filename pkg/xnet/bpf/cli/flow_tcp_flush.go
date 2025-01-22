@@ -12,6 +12,8 @@ const tcpFlowFlushDescription = ``
 const tcpFlowFlushExample = ``
 
 type tcpFlowFlushCmd struct {
+	sys
+
 	idleSeconds int
 	batchSize   int
 }
@@ -33,6 +35,7 @@ func newTCPFlowFlush() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	flowFlush.sys.addFlags(f)
 	f.IntVar(&flowFlush.idleSeconds, "idle-seconds", 3600, "--idle-seconds=3600")
 	f.IntVar(&flowFlush.batchSize, "batch-size", 1024, "--batch-size=1024")
 
@@ -40,7 +43,7 @@ func newTCPFlowFlush() *cobra.Command {
 }
 
 func (a *tcpFlowFlushCmd) run() error {
-	items, err := maps.FlushIdleTCPFlowEntries(a.idleSeconds, a.batchSize)
+	items, err := maps.FlushIdleTCPFlowEntries(a.sysId(), a.idleSeconds, a.batchSize)
 	if err != nil {
 		return err
 	}

@@ -12,7 +12,8 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
 )
 
-func AddTracePortEntry(tracePortKey *TracePortKey, tracePortVal *TracePortVal) error {
+func AddTracePortEntry(sysId SysID, tracePortKey *TracePortKey, tracePortVal *TracePortVal) error {
+	tracePortKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_PORT)
 	if tracePortMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer tracePortMap.Close()
@@ -22,7 +23,8 @@ func AddTracePortEntry(tracePortKey *TracePortKey, tracePortVal *TracePortVal) e
 	}
 }
 
-func DelTracePortEntry(tracePortKey *TracePortKey) error {
+func DelTracePortEntry(sysId SysID, tracePortKey *TracePortKey) error {
+	tracePortKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_PORT)
 	if tracePortMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer tracePortMap.Close()
@@ -62,8 +64,8 @@ func ShowTracePortEntries() {
 }
 
 func (t *TracePortKey) String() string {
-	return fmt.Sprintf(`{"port": %d}`,
-		_port_(t.Port))
+	return fmt.Sprintf(`{"sys": "%s","port": %d}`,
+		_sys_(t.Sys), _port_(t.Port))
 }
 
 func (t *TracePortVal) String() string {

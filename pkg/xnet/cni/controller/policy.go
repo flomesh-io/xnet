@@ -79,12 +79,12 @@ func init() {
 	}
 }
 
-func (s *server) configPolicies() {
-	s.configAclPolicies()
-	s.configNatPolicies()
+func (s *server) configMeshPolicies() {
+	s.configMeshAclPolicies()
+	s.configMeshNatPolicies()
 }
 
-func (s *server) configAclPolicies() {
+func (s *server) configMeshAclPolicies() {
 	ifi, brv4Addrs, hwAddr, err := s.getBridgeAddrs(bridgeDev)
 	if err != nil {
 		log.Fatal().Err(err).Msg(`invalid bridge eth: cni0`)
@@ -112,14 +112,14 @@ func (s *server) configAclPolicies() {
 			aclKey.Port = util.HostToNetShort(0)
 			aclVal.Acl = uint8(maps.ACL_TRUSTED)
 			aclKey.Proto = uint8(maps.IPPROTO_TCP)
-			if err := maps.AddAclEntry(aclKey, aclVal); err != nil {
+			if err := maps.AddAclEntry(maps.SysMesh, aclKey, aclVal); err != nil {
 				log.Error().Err(err).Msgf(`failed to add acl: %s`, aclKey.String())
 			}
 		}
 	}
 }
 
-func (s *server) configNatPolicies() {
+func (s *server) configMeshNatPolicies() {
 	for _, proto := range supportedProtos {
 		for _, tcdir := range supportedTcdirs {
 			natPolicies[proto][tcdir].natVal = new(maps.NatVal)
@@ -161,12 +161,12 @@ func (s *server) configNatPolicies() {
 					if s.isTargetPort(port, s.filterPortInbound) {
 						trustedAddrs[podAddrNb][portBe] = uint8(maps.ACL_AUDIT)
 						natPolicies[corev1Protos[port.Protocol]][maps.TC_DIR_IGR].natVal.
-							AddEp(podAddr, portLe, podMac, false)
+							AddEp(podAddr, portLe, podMac, 0, 0, nil, true)
 					}
 					if s.isTargetPort(port, s.filterPortOutbound) {
 						trustedAddrs[podAddrNb][portBe] = uint8(maps.ACL_AUDIT)
 						natPolicies[corev1Protos[port.Protocol]][maps.TC_DIR_EGR].natVal.
-							AddEp(podAddr, portLe, podMac, false)
+							AddEp(podAddr, portLe, podMac, 0, 0, nil, true)
 					}
 				}
 			}
@@ -186,7 +186,7 @@ func (s *server) configNatPolicies() {
 			aclVal.Acl = acl
 			for _, proto := range []uint8{uint8(maps.IPPROTO_TCP), uint8(maps.IPPROTO_UDP)} {
 				aclKey.Proto = proto
-				if err := maps.AddAclEntry(aclKey, aclVal); err != nil {
+				if err := maps.AddAclEntry(maps.SysMesh, aclKey, aclVal); err != nil {
 					log.Error().Err(err).Msgf(`failed to add acl: %s`, aclKey.String())
 				}
 			}
@@ -202,7 +202,7 @@ func (s *server) configNatPolicies() {
 				continue
 			}
 		}
-		if err := maps.DelAclEntry(&aclKey); err != nil {
+		if err := maps.DelAclEntry(maps.SysMesh, &aclKey); err != nil {
 			log.Error().Err(err).Msgf(`failed to del acl: %s`, aclKey.String())
 		}
 	}
@@ -218,7 +218,7 @@ func (s *server) configNatPolicies() {
 				})
 			if policy.hash != chash {
 				policy.hash = chash
-				if err := maps.AddNatEntry(policy.natKey, policy.natVal); err != nil {
+				if err := maps.AddNatEntry(maps.SysMesh, policy.natKey, policy.natVal); err != nil {
 					log.Error().Err(err).Msg(policy.natKey.String())
 				}
 			}

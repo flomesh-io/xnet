@@ -13,6 +13,7 @@ const traceIPDelDescription = ``
 const traceIPDelExample = ``
 
 type traceIPDelCmd struct {
+	sys
 	sa
 }
 
@@ -33,6 +34,7 @@ func newTraceIPDel() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	traceIPDel.sys.addFlags(f)
 	traceIPDel.sa.addAddrFlag(f)
 
 	return cmd
@@ -47,5 +49,5 @@ func (a *traceIPDelCmd) run() error {
 	if traceKey.Addr[0], err = util.IPv4ToInt(a.sa.addr); err != nil {
 		return err
 	}
-	return maps.DelTraceIPEntry(traceKey)
+	return maps.DelTraceIPEntry(a.sysId(), traceKey)
 }

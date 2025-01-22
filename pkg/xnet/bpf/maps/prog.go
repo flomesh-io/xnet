@@ -25,12 +25,12 @@ func InitProgEntries() error {
 
 	progs := []ebpfProg{
 		{
-			progKey:  ProgKey(bpf.FSM_CNI_PASS_PROG_KEY),
-			progName: bpf.FSM_CNI_PASS_PROG_NAME,
+			progKey:  ProgKey(bpf.FSM_PASS_PROG_KEY),
+			progName: bpf.FSM_PASS_PROG_NAME,
 		},
 		{
-			progKey:  ProgKey(bpf.FSM_CNI_DROP_PROG_KEY),
-			progName: bpf.FSM_CNI_DROP_PROG_NAME,
+			progKey:  ProgKey(bpf.FSM_DROP_PROG_KEY),
+			progName: bpf.FSM_DROP_PROG_NAME,
 		},
 	}
 

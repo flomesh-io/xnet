@@ -13,6 +13,7 @@ import (
 	"github.com/flomesh-io/xnet/pkg/logger"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
+	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
 )
 
 var (
@@ -178,7 +179,23 @@ func ShowBPFProg(dev string) error {
 	return nil
 }
 
-func AttachBPFProg(dev string) error {
+func AttachBPFProg(sysId maps.SysID, dev string, ingress, egress bool) error {
+	var ingressProgName, egressProgName string
+
+	switch sysId {
+	case maps.SysNoop:
+		ingressProgName = bpf.FSM_NOOP_INGRESS_PROG_NAME
+		egressProgName = bpf.FSM_NOOP_EGRESS_PROG_NAME
+	case maps.SysMesh:
+		ingressProgName = bpf.FSM_MESH_INGRESS_PROG_NAME
+		egressProgName = bpf.FSM_MESH_EGRESS_PROG_NAME
+	case maps.SysE4lb:
+		ingressProgName = bpf.FSM_E4LB_INGRESS_PROG_NAME
+		egressProgName = bpf.FSM_E4LB_EGRESS_PROG_NAME
+	default:
+		return fmt.Errorf("invalid fsm sys: %d", sysId)
+	}
+
 	iface, ifaceErr := net.InterfaceByName(dev)
 	if ifaceErr != nil {
 		log.Error().Msgf("get iface error: %v", ifaceErr)
@@ -197,43 +214,66 @@ func AttachBPFProg(dev string) error {
 		}
 	}()
 
-	ingressProgFD, ingressProgFDErr := getBPFObjFD(bpf.FSM_CNI_INGRESS_PROG_NAME)
-	if ingressProgFDErr != nil {
-		log.Error().Msgf("fail to load sidecar ingress prog: %v", ingressProgFDErr)
-		return ingressProgFDErr
-	}
-
-	egressProgFD, egressProgFDErr := getBPFObjFD(bpf.FSM_CNI_EGRESS_PROG_NAME)
-	if egressProgFDErr != nil {
-		log.Error().Msgf("fail to load sidecar egress prog: %v", egressProgFDErr)
-		return egressProgFDErr
-	}
-
-	if qdisc, qdiscErr := GetBPFQdisc(rtnl, uint32(iface.Index)); qdiscErr != nil {
-		log.Error().Msgf("get qdisc error: %v", qdiscErr)
-		return qdiscErr
-	} else if qdisc == nil {
-		if err := addBPFQdisc(rtnl, uint32(iface.Index)); err != nil {
-			return err
+	if ingress || egress {
+		if qdisc, qdiscErr := GetBPFQdisc(rtnl, uint32(iface.Index)); qdiscErr != nil {
+			log.Error().Msgf("get tc qdisc error: %v", qdiscErr)
+			return qdiscErr
+		} else if qdisc == nil {
+			if err := addBPFQdisc(rtnl, uint32(iface.Index)); err != nil {
+				log.Error().Msgf("add tc qdisc error: %v", err)
+				return err
+			}
 		}
-	}
 
-	if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleIngress); filter == nil {
-		if err := addBPFFilter(rtnl, uint32(iface.Index), HandleIngress, uint32(ingressProgFD)); err != nil {
-			return err
+		if ingress {
+			if ingressProgFD, ingressProgFDErr := getBPFObjFD(ingressProgName); ingressProgFDErr != nil {
+				log.Error().Msgf("fail to load ingress prog: %v", ingressProgFDErr)
+				return ingressProgFDErr
+			} else {
+				if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleIngress); filter == nil {
+					if err := addBPFFilter(rtnl, uint32(iface.Index), HandleIngress, uint32(ingressProgFD)); err != nil {
+						log.Error().Msgf("add tc ingress filter error: %v", err)
+						return err
+					}
+				}
+			}
 		}
-	}
 
-	if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleEgress); filter == nil {
-		if err := addBPFFilter(rtnl, uint32(iface.Index), HandleEgress, uint32(egressProgFD)); err != nil {
-			return err
+		if egress {
+			if egressProgFD, egressProgFDErr := getBPFObjFD(egressProgName); egressProgFDErr != nil {
+				log.Error().Msgf("fail to load egress prog: %v", egressProgFDErr)
+				return egressProgFDErr
+			} else {
+				if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleEgress); filter == nil {
+					if err := addBPFFilter(rtnl, uint32(iface.Index), HandleEgress, uint32(egressProgFD)); err != nil {
+						log.Error().Msgf("add tc egress filter error: %v", err)
+						return err
+					}
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func DetachBPFProg(dev string) error {
+func DetachBPFProg(sysId maps.SysID, dev string, ingress, egress bool) error {
+	var ingressProgName, egressProgName string
+
+	switch sysId {
+	case maps.SysNoop:
+		ingressProgName = bpf.FSM_NOOP_INGRESS_PROG_NAME
+		egressProgName = bpf.FSM_NOOP_EGRESS_PROG_NAME
+	case maps.SysMesh:
+		ingressProgName = bpf.FSM_MESH_INGRESS_PROG_NAME
+		egressProgName = bpf.FSM_MESH_EGRESS_PROG_NAME
+	case maps.SysE4lb:
+		ingressProgName = bpf.FSM_E4LB_INGRESS_PROG_NAME
+		egressProgName = bpf.FSM_E4LB_EGRESS_PROG_NAME
+	default:
+		return fmt.Errorf("invalid fsm sys: %d", sysId)
+	}
+
 	iface, ifaceErr := net.InterfaceByName(dev)
 	if ifaceErr != nil {
 		return ifaceErr
@@ -254,20 +294,22 @@ func DetachBPFProg(dev string) error {
 		return nil
 	}
 
-	if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleIngress); filter != nil {
-		ingressProgFD, ingressProgFDErr := getBPFObjFD(bpf.FSM_CNI_INGRESS_PROG_NAME)
-		if ingressProgFDErr == nil {
-			if err := deleteBPFFilter(rtnl, uint32(iface.Index), HandleIngress, uint32(ingressProgFD)); err != nil {
-				log.Error().Msg(err.Error())
+	if ingress {
+		if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleIngress); filter != nil {
+			if ingressProgFD, ingressProgFDErr := getBPFObjFD(ingressProgName); ingressProgFDErr == nil {
+				if err := deleteBPFFilter(rtnl, uint32(iface.Index), HandleIngress, uint32(ingressProgFD)); err != nil {
+					log.Error().Msg(err.Error())
+				}
 			}
 		}
 	}
 
-	if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleEgress); filter != nil {
-		egressProgFD, egressProgFDErr := getBPFObjFD(bpf.FSM_CNI_EGRESS_PROG_NAME)
-		if egressProgFDErr == nil {
-			if err := deleteBPFFilter(rtnl, uint32(iface.Index), HandleEgress, uint32(egressProgFD)); err != nil {
-				log.Error().Msg(err.Error())
+	if egress {
+		if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleEgress); filter != nil {
+			if egressProgFD, egressProgFDErr := getBPFObjFD(egressProgName); egressProgFDErr == nil {
+				if err := deleteBPFFilter(rtnl, uint32(iface.Index), HandleEgress, uint32(egressProgFD)); err != nil {
+					log.Error().Msg(err.Error())
+				}
 			}
 		}
 	}

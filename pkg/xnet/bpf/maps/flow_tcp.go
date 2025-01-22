@@ -12,7 +12,8 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/util"
 )
 
-func AddTCPFlowEntry(flowKey *FlowKey, flowVal *FlowTCPVal) error {
+func AddTCPFlowEntry(sysId SysID, flowKey *FlowKey, flowVal *FlowTCPVal) error {
+	flowKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TCP_FLOW)
 	if flowMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer flowMap.Close()
@@ -22,7 +23,8 @@ func AddTCPFlowEntry(flowKey *FlowKey, flowVal *FlowTCPVal) error {
 	}
 }
 
-func DelTCPFlowEntry(flowKey *FlowKey) error {
+func DelTCPFlowEntry(sysId SysID, flowKey *FlowKey) error {
+	flowKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TCP_FLOW)
 	if flowMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer flowMap.Close()
@@ -32,7 +34,7 @@ func DelTCPFlowEntry(flowKey *FlowKey) error {
 	}
 }
 
-func FlushIdleTCPFlowEntries(idleSeconds, batchSize int) (int, error) {
+func FlushIdleTCPFlowEntries(sysId SysID, idleSeconds, batchSize int) (int, error) {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TCP_FLOW)
 	flowMap, mapErr := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{})
 	if mapErr != nil {
@@ -45,7 +47,7 @@ func FlushIdleTCPFlowEntries(idleSeconds, batchSize int) (int, error) {
 	optWithLocalPortOn := false
 	var optMap *ebpf.Map
 	var idleOptKeys []OptKey
-	if cfg, err := GetXNetCfg(); err != nil {
+	if cfg, err := GetXNetCfg(sysId); err != nil {
 		return 0, nil
 	} else if natOptOn = cfg.IsSet(CfgFlagOffsetIPv4TCPNatOptOn); natOptOn {
 		pinnedFile = fs.GetPinningFile(bpf.FSM_MAP_NAME_TCP_OPT)

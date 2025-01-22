@@ -23,7 +23,7 @@ func (s *server) broadcastListener() {
 		case <-sidecarUpdateChan:
 			slidingTimer.Reset(syncPeriod)
 		case <-slidingTimer.C:
-			s.configPolicies()
+			s.configMeshPolicies()
 		}
 	}
 }

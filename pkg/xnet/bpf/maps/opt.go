@@ -12,11 +12,13 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
 )
 
-func AddTCPOptEntry(optKey *OptKey, optVal *OptVal) error {
+func AddTCPOptEntry(sysId SysID, optKey *OptKey, optVal *OptVal) error {
+	optKey.Sys = uint32(sysId)
 	return addOptEntry(bpf.FSM_MAP_NAME_TCP_OPT, optKey, optVal)
 }
 
-func DelTCPOptEntry(optKey *OptKey) error {
+func DelTCPOptEntry(sysId SysID, optKey *OptKey) error {
+	optKey.Sys = uint32(sysId)
 	return delOptEntry(bpf.FSM_MAP_NAME_TCP_OPT, optKey)
 }
 
@@ -24,11 +26,13 @@ func ShowTCPOptEntries() {
 	showOptEntries(bpf.FSM_MAP_NAME_TCP_OPT)
 }
 
-func AddUDPOptEntry(optKey *OptKey, optVal *OptVal) error {
+func AddUDPOptEntry(sysId SysID, optKey *OptKey, optVal *OptVal) error {
+	optKey.Sys = uint32(sysId)
 	return addOptEntry(bpf.FSM_MAP_NAME_UDP_OPT, optKey, optVal)
 }
 
-func DelUDPOptEntry(optKey *OptKey) error {
+func DelUDPOptEntry(sysId SysID, optKey *OptKey) error {
+	optKey.Sys = uint32(sysId)
 	return delOptEntry(bpf.FSM_MAP_NAME_UDP_OPT, optKey)
 }
 
@@ -86,8 +90,8 @@ func showOptEntries(emap string) {
 }
 
 func (t *OptKey) String() string {
-	return fmt.Sprintf(`{"local_addr": "%s","remote_addr": "%s","local_port": %d,"remote_port": %d,"proto": "%s","v6": %t}`,
-		_ip_(t.Laddr[0]), _ip_(t.Raddr[0]), _port_(t.Lport), _port_(t.Rport), _proto_(t.Proto), _bool_(t.V6))
+	return fmt.Sprintf(`{"sys": "%s","local_addr": "%s","remote_addr": "%s","local_port": %d,"remote_port": %d,"proto": "%s","v6": %t}`,
+		_sys_(t.Sys), _ip_(t.Laddr[0]), _ip_(t.Raddr[0]), _port_(t.Lport), _port_(t.Rport), _proto_(t.Proto), _bool_(t.V6))
 }
 
 func (t *OptVal) String() string {

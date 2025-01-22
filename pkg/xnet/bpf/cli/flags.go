@@ -3,11 +3,32 @@ package cli
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	flag "github.com/spf13/pflag"
 
+	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
 	"github.com/flomesh-io/xnet/pkg/xnet/util"
 )
+
+type sys struct {
+	sys string
+}
+
+func (s *sys) addFlags(f *flag.FlagSet) {
+	f.StringVar(&s.sys, "sys", "", "--sys=noop/mesh/e4lb ")
+}
+
+func (s *sys) sysId() maps.SysID {
+	switch strings.ToLower(s.sys) {
+	case `mesh`:
+		return maps.SysMesh
+	case `e4lb`:
+		return maps.SysE4lb
+	default:
+		return maps.SysNoop
+	}
+}
 
 type tc struct {
 	tcIngress bool
@@ -15,8 +36,8 @@ type tc struct {
 }
 
 func (c *tc) addFlags(f *flag.FlagSet) {
-	f.BoolVar(&c.tcIngress, "tc-ingress", false, "--tc-ingress")
-	f.BoolVar(&c.tcEgress, "tc-egress", false, "--tc-egress")
+	f.BoolVar(&c.tcIngress, "tc-ingress", false, "--tc-ingress=true/false")
+	f.BoolVar(&c.tcEgress, "tc-egress", false, "--tc-egress=true/false")
 }
 
 type proto struct {
@@ -48,20 +69,26 @@ func (c *sa) addPortFlag(f *flag.FlagSet) {
 }
 
 type ep struct {
-	addr     net.IP
-	port     uint16
-	mac      string
-	inactive bool
+	addr   net.IP
+	port   uint16
+	mac    string
+	ofi    uint32
+	oflags uint32
+	omac   string
+	active bool
 }
 
-func (c *ep) addFlags(f *flag.FlagSet, mac, inactive bool) {
+func (c *ep) addFlags(f *flag.FlagSet, mac, active bool) {
 	f.IPVar(&c.addr, "ep-addr", net.ParseIP("0.0.0.0"), "--ep-addr=0.0.0.0")
 	f.Uint16Var(&c.port, "ep-port", 0, "--ep-port=0")
+	f.Uint32Var(&c.ofi, "ep-ofi", 0, "--ep-ofi=0")
+	f.Uint32Var(&c.oflags, "ep-oflags", 0, "--ep-oflags=0/1")
 	if mac {
 		f.StringVar(&c.mac, "ep-mac", "", "--ep-mac=00:00:00:00:00:00")
+		f.StringVar(&c.omac, "ep-omac", "", "--ep-omac=00:00:00:00:00:00")
 	}
-	if inactive {
-		f.BoolVar(&c.inactive, "inactive", false, "--inactive")
+	if active {
+		f.BoolVar(&c.active, "active", true, "--active=true/false")
 	}
 }
 

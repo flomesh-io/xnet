@@ -8,6 +8,23 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/util"
 )
 
+func SysName(sysId SysID) string {
+	return _sys_(uint32(sysId))
+}
+
+func _sys_(sys uint32) string {
+	switch sys {
+	case uint32(SysNoop):
+		return "Noop"
+	case uint32(SysMesh):
+		return "Mesh"
+	case uint32(SysE4lb):
+		return "E4lb"
+	default:
+		return ""
+	}
+}
+
 func _duration_(atime uint64) string {
 	escape := time.Duration(util.Uptime())*time.Second - time.Duration(atime)*time.Nanosecond
 	return escape.String()
