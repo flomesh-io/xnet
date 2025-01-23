@@ -17,7 +17,7 @@ ADD . .
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xctr -ldflags "$LDFLAGS" ./cmd/xctr/*
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xctr -ldflags "$LDFLAGS" ./cmd/xctr/*
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xcni -ldflags "$LDFLAGS" ./cmd/xcni/*
