@@ -10,6 +10,8 @@ const configSetDescription = ``
 const configSetExample = ``
 
 type configSetCmd struct {
+	sys
+
 	ipv6ProtoDenyAll             int8
 	ipv4TCPProtoDenyAll          int8
 	ipv4TCPProtoAllowAll         int8
@@ -61,6 +63,7 @@ func newConfigSet() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	configSet.sys.addFlags(f)
 	f.Int8Var(&configSet.ipv6ProtoDenyAll, "ipv6_proto_deny_all", -1, "--ipv6_proto_deny_all=0/1")
 	f.Int8Var(&configSet.ipv4TCPProtoDenyAll, "ipv4_tcp_proto_deny_all", -1, "--ipv4_tcp_proto_deny_all=0/1")
 	f.Int8Var(&configSet.ipv4TCPProtoAllowAll, "ipv4_tcp_proto_allow_all", -1, "--ipv4_tcp_proto_allow_all=0/1")
@@ -98,7 +101,7 @@ func newConfigSet() *cobra.Command {
 }
 
 func (a *configSetCmd) run() error {
-	cfgVal, err := maps.GetXNetCfg()
+	cfgVal, err := maps.GetXNetCfg(a.sysId())
 	if err != nil {
 		return err
 	}
@@ -118,7 +121,7 @@ func (a *configSetCmd) run() error {
 		a.setNatOpt(cfgVal)
 		a.setAcl(cfgVal)
 		a.setTracer(cfgVal)
-		return maps.SetXNetCfg(cfgVal)
+		return maps.SetXNetCfg(a.sysId(), cfgVal)
 	}
 	return nil
 }

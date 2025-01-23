@@ -12,7 +12,8 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
 )
 
-func AddTraceIPEntry(traceIPKey *TraceIPKey, traceIPVal *TraceIPVal) error {
+func AddTraceIPEntry(sysId SysID, traceIPKey *TraceIPKey, traceIPVal *TraceIPVal) error {
+	traceIPKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_IP)
 	if traceIPMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer traceIPMap.Close()
@@ -22,7 +23,8 @@ func AddTraceIPEntry(traceIPKey *TraceIPKey, traceIPVal *TraceIPVal) error {
 	}
 }
 
-func DelTraceIPEntry(traceIPKey *TraceIPKey) error {
+func DelTraceIPEntry(sysId SysID, traceIPKey *TraceIPKey) error {
+	traceIPKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_IP)
 	if traceIPMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer traceIPMap.Close()
@@ -62,8 +64,8 @@ func ShowTraceIPEntries() {
 }
 
 func (t *TraceIPKey) String() string {
-	return fmt.Sprintf(`{"addr": "%s"}`,
-		_ip_(t.Addr[0]))
+	return fmt.Sprintf(`{"sys": "%s","addr": "%s"}`,
+		_sys_(t.Sys), _ip_(t.Addr[0]))
 }
 
 func (t *TraceIPVal) String() string {

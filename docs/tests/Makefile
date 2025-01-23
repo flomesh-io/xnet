@@ -5,13 +5,15 @@ CTR_ETH  ?= ens33
 CTR_ETH_IP4 ?= $(shell ip -j -4 a show dev $(CTR_ETH) | jq -r .[0].addr_info[0].local)
 CTR_CNI1_MAC ?= $(shell ip -j a show dev cni1 | jq -r .[0].address)
 CTR_CNI2_MAC ?= $(shell ip -j a show dev cni2 | jq -r .[0].address)
+CTR_CNI1_IFI ?= $(shell ip -j a show dev cni1 | jq -r .[0].ifindex)
+CTR_CNI2_IFI ?= $(shell ip -j a show dev cni2 | jq -r .[0].ifindex)
 
 WORK_DIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 ROOT_DIR :=  $(abspath $(WORK_DIR)/../..)
 BIN_DIR :=  $(abspath $(WORK_DIR)/../../bin)
 
-.PHONY: test-up
-test-up: test-reset
+.PHONY: mesh-up
+mesh-up: mesh-reset
 	@echo 1 > /proc/sys/net/ipv4/ip_forward
 	@sudo iptables -t nat -A POSTROUTING -o ${CTR_ETH} -j MASQUERADE
 	@# Configure load-balancer end-point v1
@@ -35,13 +37,31 @@ test-up: test-reset
 	@sudo ip netns exec v2 ifconfig lo up
 	@# Configure load-balancer end-point v2 Done
 
-.PHONY: test-reset
-test-reset:
+.PHONY: mesh-reset
+mesh-reset:
 	@sudo ip link del cni1 > /dev/null 2>&1 || true
 	@sudo ip netns del v1 > /dev/null 2>&1 || true
 	@sudo ip link del cni2 > /dev/null 2>&1 || true
 	@sudo ip netns del v2 > /dev/null 2>&1 || true
 	@sudo iptables -t nat -F || true
+	@sudo killall pipy > /dev/null 2>&1 || true
+
+.PHONY: e4lb-up
+e4lb-up: mesh-up
+	@echo 1 > /proc/sys/net/ipv4/ip_forward
+	@#sudo ip netns exec v1 ip addr add 18.18.18.18/32 dev lo
+	@#sudo ip r add 18.18.18.18/32 dev cni1
+	@sudo iptables -t nat -F || true
+
+.PHONY: e4lb-reset
+e4lb-reset: mesh-reset
+
+.PHONY: noop-up
+noop-up: mesh-up
+	@echo 1 > /proc/sys/net/ipv4/ip_forward
+
+.PHONY: noop-reset
+e4lb-noop: mesh-reset
 
 .PHONY: fgw-inbound
 fgw-inbound:
@@ -88,97 +108,115 @@ curl-v2-demo:
 v1-curl-v2-demo:
 	@sudo ip netns exec v1 curl 20.0.0.2:8080
 
-.PHONY: test-tcp-outbound
-test-tcp-outbound:
+.PHONY: test-mesh-tcp-outbound
+test-mesh-tcp-outbound:
 	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
-	@${BIN_DIR}/xnat bpf detach --namespace=v1 --dev=eth0 > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat bpf detach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
 	@${BIN_DIR}/xnat prog init
-	@${BIN_DIR}/xnat cfg set --debug-on
-	@${BIN_DIR}/xnat cfg set --opt-on
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-ingress --ep-addr=${CTR_ETH_IP4} --ep-port=15003 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-egress --ep-addr=${CTR_ETH_IP4} --ep-port=15001 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat bpf attach --namespace=v1 --dev=eth0
+	@${BIN_DIR}/xnat cfg set --sys=mesh --debug-on
+	@${BIN_DIR}/xnat cfg set --sys=mesh --opt-on
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=0 --proto-tcp --tc-ingress --ep-addr=${CTR_ETH_IP4} --ep-port=15003 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=0 --proto-tcp --tc-egress --ep-addr=${CTR_ETH_IP4} --ep-port=15001 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat bpf attach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true
 	@sudo ip netns exec v1 curl 20.0.0.2:8080
 
-.PHONY: test-tcp-inbound
-test-tcp-inbound:
+.PHONY: test-mesh-tcp-inbound
+test-mesh-tcp-inbound:
 	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
-	@${BIN_DIR}/xnat bpf detach --namespace=v1 --dev=eth0 > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat bpf detach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
 	@${BIN_DIR}/xnat prog init
-	@${BIN_DIR}/xnat cfg set --debug-on
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-ingress --ep-addr=${CTR_ETH_IP4} --ep-port=15003 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-egress --ep-addr=${CTR_ETH_IP4} --ep-port=15001 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat bpf attach --namespace=v1 --dev=eth0
+	@${BIN_DIR}/xnat cfg set --sys=mesh --debug-on
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=0 --proto-tcp --tc-ingress --ep-addr=${CTR_ETH_IP4} --ep-port=15003 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=0 --proto-tcp --tc-egress --ep-addr=${CTR_ETH_IP4} --ep-port=15001 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat bpf attach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true
 	@curl 10.0.0.2:8080
 
-.PHONY: test-acl-outbound
-test-acl-outbound:
+.PHONY: test-mesh-acl-outbound
+test-mesh-acl-outbound:
 	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
-	@${BIN_DIR}/xnat bpf detach --namespace=v1 --dev=eth0 > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat bpf detach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
 	@${BIN_DIR}/xnat prog init
-	@${BIN_DIR}/xnat cfg set --ipv4_acl_check_on=1
-	@${BIN_DIR}/xnat acl add --proto-tcp --port=0 --addr=10.0.0.1 --acl=trusted
-	@${BIN_DIR}/xnat acl add --proto-tcp --port=0 --addr=20.0.0.2 --acl=trusted
-	@${BIN_DIR}/xnat bpf attach --namespace=v1 --dev=eth0
+	@${BIN_DIR}/xnat cfg set --sys=mesh --ipv4_acl_check_on=1
+	@${BIN_DIR}/xnat acl add --sys=mesh --proto-tcp --port=0 --addr=10.0.0.1 --acl=trusted
+	@${BIN_DIR}/xnat acl add --sys=mesh --proto-tcp --port=0 --addr=20.0.0.2 --acl=trusted
+	@${BIN_DIR}/xnat bpf attach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true
 	@sudo ip netns exec v1 curl 20.0.0.2:8080
 
-.PHONY: test-acl-inbound
-test-acl-inbound:
+.PHONY: test-mesh-acl-inbound
+test-mesh-acl-inbound:
 	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
-	@${BIN_DIR}/xnat bpf detach --namespace=v1 --dev=eth0 > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat bpf detach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
 	@${BIN_DIR}/xnat prog init
-	@${BIN_DIR}/xnat cfg set --ipv4_acl_check_on=1
-	@${BIN_DIR}/xnat acl add --proto-tcp --port=0 --addr=10.0.0.1 --acl=trusted
-	@${BIN_DIR}/xnat acl add --proto-tcp --port=0 --addr=20.0.0.2 --acl=trusted
-	@${BIN_DIR}/xnat bpf attach --namespace=v1 --dev=eth0
+	@${BIN_DIR}/xnat cfg set --sys=mesh --ipv4_acl_check_on=1
+	@${BIN_DIR}/xnat acl add --sys=mesh --proto-tcp --port=0 --addr=10.0.0.1 --acl=trusted
+	@${BIN_DIR}/xnat acl add --sys=mesh --proto-tcp --port=0 --addr=20.0.0.2 --acl=trusted
+	@${BIN_DIR}/xnat bpf attach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true
 	@curl 10.0.0.2:8080
 
-.PHONY: test-dns-outbound
-test-dns-outbound:
+.PHONY: test-mesh-dns-outbound
+test-mesh-dns-outbound:
 	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
-	@${BIN_DIR}/xnat bpf detach --namespace=v1 --dev=eth0 > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat bpf detach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
 	@${BIN_DIR}/xnat prog init
-	@${BIN_DIR}/xnat cfg set --debug-on
-	@${BIN_DIR}/xnat cfg set --opt-on
-	@${BIN_DIR}/xnat cfg set --ipv4_udp_nat_by_port_on=1
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=53 --proto-udp --tc-ingress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=53 --proto-udp --tc-egress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat bpf attach --namespace=v1 --dev=eth0
+	@${BIN_DIR}/xnat cfg set --sys=mesh --debug-on
+	@${BIN_DIR}/xnat cfg set --sys=mesh --opt-on
+	@${BIN_DIR}/xnat cfg set --sys=mesh --ipv4_udp_nat_by_port_on=1
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=53 --proto-udp --tc-ingress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=53 --proto-udp --tc-egress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat bpf attach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true
 	@nslookup www.baidu.com 10.0.0.2
 
-.PHONY: test-dns-inbound
-test-dns-inbound:
+.PHONY: test-mesh-dns-inbound
+test-mesh-dns-inbound:
 	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
-	@${BIN_DIR}/xnat bpf detach --namespace=v1 --dev=eth0 > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat bpf detach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
 	@${BIN_DIR}/xnat prog init
-	@${BIN_DIR}/xnat cfg set --debug-on
-	@${BIN_DIR}/xnat cfg set --opt-on
-	@${BIN_DIR}/xnat cfg set --ipv4_udp_nat_by_port_on=1
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=53 --proto-udp --tc-ingress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=53 --proto-udp --tc-egress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
-	@${BIN_DIR}/xnat bpf attach --namespace=v1 --dev=eth0
+	@${BIN_DIR}/xnat cfg set --sys=mesh --debug-on
+	@${BIN_DIR}/xnat cfg set --sys=mesh --opt-on
+	@${BIN_DIR}/xnat cfg set --sys=mesh --ipv4_udp_nat_by_port_on=1
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=53 --proto-udp --tc-ingress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat nat add --sys=mesh --addr=0.0.0.0 --port=53 --proto-udp --tc-egress --ep-addr=8.8.8.8 --ep-port=53 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat bpf attach --sys=mesh --namespace=v1 --dev=eth0 --tc-ingress=true --tc-egress=true
 	@ip netns exec v1 nslookup www.baidu.com 20.0.0.2
+
+.PHONY: test-e4lb-tcp
+test-e4lb-tcp:
+	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
+	@${BIN_DIR}/xnat bpf detach --sys=e4lb --dev=cni2 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat prog init
+	@${BIN_DIR}/xnat cfg set --sys=e4lb --debug-on --ipv4_tcp_nat_all_off=1 --ipv4_tcp_nat_by_ip_port_on=1 --ipv4_tcp_proto_allow_nat_escape=1 --ipv4_udp_proto_allow_all=1 --ipv4_oth_proto_deny_all=0 --ipv6_proto_deny_all=0
+	@${BIN_DIR}/xnat nat add --sys=e4lb --proto-tcp --addr=17.17.17.17 --port=8080 --tc-ingress --ep-addr=10.0.0.2 --ep-port=8080 --ep-mac=$(CTR_CNI1_MAC) --ep-ofi=$(CTR_CNI1_IFI) --ep-oflags=1
+	@${BIN_DIR}/xnat bpf attach --sys=e4lb --dev=cni2 --tc-ingress=true --tc-egress=true
+	sudo ip netns exec v2 curl 17.17.17.17:8080
+
+.PHONY: test-noop-tcp
+test-noop-tcp:
+	@make -f ${ROOT_DIR}/Makefile.cli.mk clean load
+	@${BIN_DIR}/xnat bpf detach --sys=noop --dev=cni2 --tc-ingress=true --tc-egress=true > /dev/null 2>&1 || true
+	@${BIN_DIR}/xnat prog init
+	@${BIN_DIR}/xnat bpf attach --sys=noop --dev=cni2 --tc-ingress=true --tc-egress=true
+	sudo ip netns exec v2 curl 10.0.0.2:8080
 
 .PHONY: init-prog-map
 init-prog-map:
 	@${BIN_DIR}/xnat prog init
 
-.PHONY: init-nat-map
-init-nat-map:
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-ingress --ep-addr=${CTR_ETH_ADDR} --ep-port=15003
-	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-egress --ep-addr=${CTR_ETH_ADDR} --ep-port=15001
+.PHONY: init-noop-nat-map
+init-noop-nat-map:
+	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-ingress --ep-addr=${CTR_ETH_IP4} --ep-port=15003 --ep-mac=${CTR_CNI1_MAC}
+	@${BIN_DIR}/xnat nat add --addr=0.0.0.0 --port=0 --proto-tcp --tc-egress --ep-addr=${CTR_ETH_IP4} --ep-port=15001 --ep-mac=${CTR_CNI1_MAC}
 
-.PHONY: init-acl-map
-init-acl-map:
+.PHONY: init-noop-acl-map
+init-noop-acl-map:
 	@${BIN_DIR}/xnat acl add --proto-tcp --port=0 --addr=10.0.0.1 --acl=trusted
 	@${BIN_DIR}/xnat acl add --proto-tcp --port=0 --addr=20.0.0.2 --acl=trusted
 
-.PHONY: init-trace-ip-map
-init-trace-ip-map:
+.PHONY: init-noop-trace-ip-map
+init-noop-trace-ip-map:
 	@${BIN_DIR}/xnat tr ip add --addr=10.0.0.2 --tc-ingress --tc-egress
 
-.PHONY: init-trace-port-map
-init-trace-port-map:
+.PHONY: init-noop-trace-port-map
+init-noop-trace-port-map:
 	@${BIN_DIR}/xnat trace port add --port=8080 --tc-ingress --tc-egress
 
 .PHONY: show-tcp-flow-map
@@ -209,6 +247,18 @@ show-nat-map:
 show-cfg-map:
 	@${BIN_DIR}/xnat cfg list | jq
 
+.PHONY: show-noop-cfg
+show-noop-cfg:
+	@${BIN_DIR}/xnat cfg get --sys=noop | jq
+
+.PHONY: show-mesh-cfg
+show-mesh-cfg:
+	@${BIN_DIR}/xnat cfg get --sys=mesh | jq
+
+.PHONY: show-e4lb-cfg
+show-e4lb-cfg:
+	@${BIN_DIR}/xnat cfg get --sys=e4lb | jq
+
 .PHONY: show-prog-map
 show-prog-map:
 	@${BIN_DIR}/xnat prog list | jq
@@ -220,7 +270,3 @@ show-trace-ip-map:
 .PHONY: show-trace-port-map
 show-trace-port-map:
 	@${BIN_DIR}/xnat tr port list | jq
-
-.PHONY: show-tc
-show-tc:
-	@${BIN_DIR}/xnat bpf list --namespace=v1 --dev=eth0 | jq

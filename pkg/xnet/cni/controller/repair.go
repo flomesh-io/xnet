@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
 	"github.com/flomesh-io/xnet/pkg/xnet/ns"
 	"github.com/flomesh-io/xnet/pkg/xnet/tc"
 	"github.com/flomesh-io/xnet/pkg/xnet/volume"
@@ -60,7 +61,7 @@ func (s *server) doCheckAndRepairPods() map[string]string {
 							addrStr := addr.String()
 							addrStr = addrStr[0:strings.Index(addrStr, `/`)]
 							if pod, exists := monitoredPodsByAddr[addrStr]; exists {
-								if attachErr := tc.AttachBPFProg(iface.Name); attachErr != nil {
+								if attachErr := tc.AttachBPFProg(maps.SysMesh, iface.Name, true, true); attachErr != nil {
 									return fmt.Errorf(`%s %s`, pod, attachErr.Error())
 								}
 								delete(monitoredPodsByAddr, addrStr)

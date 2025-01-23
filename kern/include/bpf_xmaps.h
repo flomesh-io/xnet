@@ -158,14 +158,14 @@ struct bpf_map_def SEC("maps") fsm_xcfg = {
     .type = BPF_MAP_TYPE_ARRAY,
     .key_size = sizeof(__u32),
     .value_size = sizeof(cfg_t),
-    .max_entries = 1,
+    .max_entries = SYS_MAX,
 };
 #else /* BTF definitions */
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __type(key, __u32);
     __type(value, cfg_t);
-    __uint(max_entries, 1);
+    __uint(max_entries, SYS_MAX);
 } fsm_xcfg SEC(".maps");
 #endif
 

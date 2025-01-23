@@ -14,6 +14,7 @@ const aclAddDescription = ``
 const aclAddExample = ``
 
 type aclAddCmd struct {
+	sys
 	sa
 	proto
 
@@ -39,6 +40,7 @@ func newAclAdd() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	aclAdd.sys.addFlags(f)
 	aclAdd.sa.addFlags(f)
 	aclAdd.proto.addFlags(f)
 	f.Uint8Var(&aclAdd.flag, "flag", 0, "--flag=0")
@@ -89,7 +91,7 @@ func (a *aclAddCmd) run() error {
 	}
 
 	for _, key := range aclKeys {
-		if err = maps.AddAclEntry(&key, aclVal); err != nil {
+		if err = maps.AddAclEntry(a.sysId(), &key, aclVal); err != nil {
 			return err
 		}
 	}

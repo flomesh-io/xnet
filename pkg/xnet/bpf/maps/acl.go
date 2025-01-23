@@ -12,7 +12,8 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
 )
 
-func AddAclEntry(aclKey *AclKey, aclVal *AclVal) error {
+func AddAclEntry(sysId SysID, aclKey *AclKey, aclVal *AclVal) error {
+	aclKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_ACL)
 	if aclMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer aclMap.Close()
@@ -22,7 +23,8 @@ func AddAclEntry(aclKey *AclKey, aclVal *AclVal) error {
 	}
 }
 
-func DelAclEntry(aclKey *AclKey) error {
+func DelAclEntry(sysId SysID, aclKey *AclKey) error {
+	aclKey.Sys = uint32(sysId)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_ACL)
 	if aclMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer aclMap.Close()
@@ -78,8 +80,8 @@ func ShowAclEntries() {
 }
 
 func (t *AclKey) String() string {
-	return fmt.Sprintf(`{"addr": "%s","port": %d,"proto": "%s"}`,
-		_ip_(t.Addr[0]), _port_(t.Port), _proto_(t.Proto))
+	return fmt.Sprintf(`{"sys": "%s","addr": "%s","port": %d,"proto": "%s"}`,
+		_sys_(t.Sys), _ip_(t.Addr[0]), _port_(t.Port), _proto_(t.Proto))
 }
 
 func (t *AclVal) String() string {

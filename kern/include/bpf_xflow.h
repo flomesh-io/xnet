@@ -11,6 +11,7 @@ xpkt_trace_check(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
     tr_op_t *op;
     if (cfg->ipv4_trace_by_ip_on) {
         tr_ip_t key;
+        key.sys = pkt->flow.sys;
         XADDR_COPY(key.addr, pkt->flow.saddr);
         op = bpf_map_lookup_elem(&fsm_trip, &key);
         if (op == NULL) {
@@ -23,6 +24,7 @@ xpkt_trace_check(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
     }
     if (cfg->ipv4_trace_by_port_on) {
         tr_port_t key;
+        key.sys = pkt->flow.sys;
         key.port = pkt->flow.sport;
         op = bpf_map_lookup_elem(&fsm_trpt, &key);
         if (op == NULL) {
@@ -49,6 +51,7 @@ xpkt_acl_check(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
     acl_key_t key;
     acl_op_t *op;
 
+    key.sys = pkt->flow.sys;
     key.proto = pkt->flow.proto;
     if (pkt->tc_dir == TC_DIR_IGR) {
         XADDR_COPY(key.addr, pkt->flow.saddr);
@@ -106,7 +109,7 @@ xpkt_flow_nat_endpoint(skb_t *skb, xpkt_t *pkt, nat_op_t *ops)
     while (ep_idx < FSM_NAT_MAX_ENDPOINTS) {
         if (ep_sel < FSM_NAT_MAX_ENDPOINTS) {
             ep = &ops->eps[ep_sel];
-            if (ep->inactive == 0) {
+            if (ep->active == 1) {
                 ep_sel = (ep_sel + 1) % ops->ep_cnt;
                 ops->ep_sel = ep_sel;
                 sel = ep_sel;
@@ -129,6 +132,8 @@ xpkt_flow_nat(skb_t *skb, xpkt_t *pkt, xnat_t *xnat, __u8 with_addr,
     nat_op_t *ops;
     nat_ep_t *ep;
     int ep_sel;
+
+    key.sys = pkt->flow.sys;
 
     if (with_addr) {
         XADDR_COPY(key.daddr, pkt->flow.daddr);
@@ -156,6 +161,10 @@ xpkt_flow_nat(skb_t *skb, xpkt_t *pkt, xnat_t *xnat, __u8 with_addr,
         XMAC_COPY(xnat->rmac, ep->rmac);
         XADDR_COPY(xnat->raddr, ep->raddr);
         xnat->rport = ep->rport;
+        xnat->ofi = ep->ofi;
+        xnat->oflags = ep->oflags;
+        pkt->ofi = ep->ofi;
+        pkt->oflags = ep->oflags;
         return 1;
     }
 
@@ -198,6 +207,7 @@ xpkt_flow_init_reverse_op(xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
     flow_op_t *rop;
     int ridx = 1;
 
+    rflow.sys = pkt->flow.sys;
     XADDR_COPY(&rflow.daddr, op->xnat.xaddr);
     XADDR_COPY(&rflow.saddr, op->xnat.raddr);
     rflow.dport = op->xnat.xport;
@@ -268,11 +278,19 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
     } else if (pkt->tc_dir == TC_DIR_IGR) {
         op->flow_dir = FLOW_DIR_C2S;
         op->do_trans = 1;
-        op->nfs[TC_DIR_IGR] = NF_RDIR | NF_SKIP_SM;
-        op->nfs[TC_DIR_EGR] = NF_XNAT | NF_ALLOW;
-        XMAC_COPY(op->xnat.xmac, pkt->dmac);
-        XADDR_COPY(op->xnat.xaddr, flow->daddr);
-        op->xnat.xport = flow->sport;
+        if (pkt->flow.sys == SYS_MESH) {
+            op->nfs[TC_DIR_IGR] = NF_RDIR | NF_EXHW | NF_SKSM;
+            op->nfs[TC_DIR_EGR] = NF_XNAT | NF_ALLOW;
+            XMAC_COPY(op->xnat.xmac, pkt->dmac);
+            XADDR_COPY(op->xnat.xaddr, flow->daddr);
+            op->xnat.xport = flow->sport;
+        } else if (pkt->flow.sys == SYS_E4LB) {
+            op->nfs[TC_DIR_IGR] = NF_RDIR | NF_XNAT;
+            op->nfs[TC_DIR_EGR] = NF_XNAT | NF_ALLOW;
+            XMAC_COPY(op->xnat.xmac, pkt->smac);
+            XADDR_COPY(op->xnat.xaddr, flow->saddr);
+            op->xnat.xport = flow->sport;
+        }
     }
 
     if (pkt->flow.proto == IPPROTO_TCP) {
@@ -287,19 +305,17 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
         }
 
         if (!do_nat) {
-            if (!xpkt_flow_nat(skb, pkt, &op->xnat, 0, 0)) {
+            if (cfg->ipv4_tcp_proto_allow_nat_escape) {
+                xpkt_tail_call(skb, pkt, FSM_CNI_PASS_PROG_ID);
+            } else {
                 pkt->nfs[TC_DIR_IGR] = NF_DENY;
                 pkt->nfs[TC_DIR_EGR] = NF_DENY;
                 if (cfg->ipv4_trace_nat_on) {
                     FSM_DBG("[DBG] DROP BY NO NAT\n");
                 }
-                if (cfg->ipv4_tcp_proto_allow_nat_escape) {
-                    xpkt_tail_call(skb, pkt, FSM_CNI_PASS_PROG_ID);
-                } else {
-                    xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
-                }
-                return 0;
+                xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
             }
+            return 0;
         }
     } else if (pkt->flow.proto == IPPROTO_UDP) {
         if (cfg->ipv4_udp_nat_by_ip_port_on) {
@@ -316,25 +332,24 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
         }
 
         if (!do_nat) {
-            if (!xpkt_flow_nat(skb, pkt, &op->xnat, 0, 0)) {
+            if (cfg->ipv4_udp_proto_allow_nat_escape) {
+                xpkt_tail_call(skb, pkt, FSM_CNI_PASS_PROG_ID);
+            } else {
                 pkt->nfs[TC_DIR_IGR] = NF_DENY;
                 pkt->nfs[TC_DIR_EGR] = NF_DENY;
                 if (cfg->ipv4_trace_nat_on) {
                     FSM_DBG("[DBG] DROP BY NO NAT\n");
                 }
-                if (cfg->ipv4_udp_proto_allow_nat_escape) {
-                    xpkt_tail_call(skb, pkt, FSM_CNI_PASS_PROG_ID);
-                } else {
-                    xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
-                }
-                return 0;
+                xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
             }
+            return 0;
         }
     }
 
     if (cfg->ipv4_tcp_nat_opt_on && pkt->flow.proto == IPPROTO_TCP) {
         if (XFLAG_HAS(op->nfs[TC_DIR_EGR], NF_XNAT)) {
             opt_key_t opt;
+            opt.sys = pkt->flow.sys;
             XADDR_COPY(opt.raddr, op->xnat.xaddr);
             if (cfg->ipv4_tcp_nat_opt_with_local_addr_on) {
                 XADDR_COPY(opt.laddr, op->xnat.raddr);
@@ -358,6 +373,7 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
     } else if (cfg->ipv4_udp_nat_opt_on && pkt->flow.proto == IPPROTO_UDP) {
         if (XFLAG_HAS(op->nfs[TC_DIR_EGR], NF_XNAT)) {
             opt_key_t opt;
+            opt.sys = pkt->flow.sys;
             XADDR_COPY(opt.raddr, op->xnat.xaddr);
             if (cfg->ipv4_tcp_nat_opt_with_local_addr_on) {
                 XADDR_COPY(opt.laddr, op->xnat.raddr);
@@ -402,11 +418,26 @@ xpkt_flow_proc(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
 
     XFLOW_COPY(&flow, &pkt->flow);
     if (cfg->ipv4_trace_flow_on) {
-        FSM_DBG_FLOW("FOUND FLOW:", &flow);
+        FSM_DBG_FLOW("FLOW:", &flow);
     }
 
     op = bpf_map_lookup_elem(fsm_xflow, &flow);
     if (op == NULL) {
+        if (pkt->flow.sys == SYS_E4LB) {
+            if (pkt->tc_dir == TC_DIR_EGR) {
+                if (pkt->flow.proto == IPPROTO_TCP) {
+                    if (cfg->ipv4_tcp_proto_allow_nat_escape) {
+                        pkt->nfs[TC_DIR_EGR] = NF_ALLOW;
+                        return TRANS_NON;
+                    }
+                } else if (pkt->flow.proto == IPPROTO_UDP) {
+                    if (cfg->ipv4_udp_proto_allow_nat_escape) {
+                        pkt->nfs[TC_DIR_EGR] = NF_ALLOW;
+                        return TRANS_NON;
+                    }
+                }
+            }
+        }
         if (!xpkt_flow_init_ops(skb, pkt, cfg, fsm_xflow, fsm_xopt)) {
             return trans;
         }
@@ -427,8 +458,10 @@ xpkt_flow_proc(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, void *fsm_xflow,
         XADDR_COPY(pkt->raddr, op->xnat.raddr);
         pkt->xport = op->xnat.xport;
         pkt->rport = op->xnat.rport;
+        pkt->ofi = op->xnat.ofi;
+        pkt->oflags = op->xnat.oflags;
 
-        if (XFLAG_HAS(op->nfs[pkt->tc_dir], NF_SKIP_SM)) {
+        if (XFLAG_HAS(op->nfs[pkt->tc_dir], NF_SKSM)) {
             return TRANS_EST;
         }
 
@@ -453,11 +486,14 @@ flow_track:
         XADDR_COPY(pkt->raddr, op->xnat.raddr);
         pkt->xport = op->xnat.xport;
         pkt->rport = op->xnat.rport;
+        pkt->ofi = op->xnat.ofi;
+        pkt->oflags = op->xnat.oflags;
 
-        if (XFLAG_HAS(op->nfs[pkt->tc_dir], NF_SKIP_SM)) {
+        if (XFLAG_HAS(op->nfs[pkt->tc_dir], NF_SKSM)) {
             return TRANS_EST;
         }
 
+        rflow.sys = pkt->flow.sys;
         XADDR_COPY(&rflow.daddr, op->xnat.xaddr);
         XADDR_COPY(&rflow.saddr, op->xnat.raddr);
         rflow.dport = op->xnat.xport;
@@ -497,6 +533,7 @@ flow_track:
         } else if (trans == TRANS_ERR || trans == TRANS_CWT) {
             if (cfg->ipv4_tcp_nat_opt_on && pkt->flow.proto == IPPROTO_TCP) {
                 if (XFLAG_HAS(rop->nfs[TC_DIR_EGR], NF_XNAT)) {
+                    opt.sys = pkt->flow.sys;
                     XADDR_COPY(opt.raddr, rop->xnat.xaddr);
                     if (cfg->ipv4_tcp_nat_opt_with_local_addr_on) {
                         XADDR_COPY(opt.laddr, rop->xnat.raddr);
@@ -517,6 +554,7 @@ flow_track:
                     }
                 }
                 if (XFLAG_HAS(op->nfs[TC_DIR_EGR], NF_XNAT)) {
+                    opt.sys = pkt->flow.sys;
                     XADDR_COPY(opt.raddr, op->xnat.xaddr);
                     if (cfg->ipv4_tcp_nat_opt_with_local_addr_on) {
                         XADDR_COPY(opt.laddr, op->xnat.raddr);
@@ -539,6 +577,7 @@ flow_track:
             } else if (cfg->ipv4_udp_nat_opt_on &&
                        pkt->flow.proto == IPPROTO_UDP) {
                 if (XFLAG_HAS(rop->nfs[TC_DIR_EGR], NF_XNAT)) {
+                    opt.sys = pkt->flow.sys;
                     XADDR_COPY(opt.raddr, rop->xnat.xaddr);
                     if (cfg->ipv4_tcp_nat_opt_with_local_addr_on) {
                         XADDR_COPY(opt.laddr, rop->xnat.raddr);
@@ -559,6 +598,7 @@ flow_track:
                     }
                 }
                 if (XFLAG_HAS(op->nfs[TC_DIR_EGR], NF_XNAT)) {
+                    opt.sys = pkt->flow.sys;
                     XADDR_COPY(opt.raddr, op->xnat.xaddr);
                     if (cfg->ipv4_tcp_nat_opt_with_local_addr_on) {
                         XADDR_COPY(opt.laddr, op->xnat.raddr);

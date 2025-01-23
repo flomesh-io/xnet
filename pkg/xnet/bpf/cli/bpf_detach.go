@@ -13,7 +13,9 @@ const bpfDetachDescription = ``
 const bpfDetachExample = ``
 
 type bpfDetachCmd struct {
+	sys
 	netns
+	tc
 }
 
 func newBpfDetach() *cobra.Command {
@@ -33,30 +35,34 @@ func newBpfDetach() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	bpfDetach.sys.addFlags(f)
 	bpfDetach.addRunNetnsDirFlag(f)
 	bpfDetach.addNamespaceFlag(f)
 	bpfDetach.addDevFlag(f)
+	bpfDetach.tc.addFlags(f)
 	return cmd
 }
 
 func (a *bpfDetachCmd) run() error {
-	if err := a.validateRunNetnsDirFlag(); err != nil {
-		return err
-	}
-	if err := a.validateNamespaceFlag(); err != nil {
-		return err
-	}
 	if err := a.validateDevFlag(); err != nil {
 		return err
 	}
-	inode := fmt.Sprintf(`%s/%s`, a.runNetnsDir, a.namespace)
-	namespace, err := ns.GetNS(inode)
-	if err != nil {
-		return err
-	}
 
-	err = namespace.Do(func(_ ns.NetNS) error {
-		return nstc.DetachBPFProg(a.dev)
-	})
-	return err
+	if len(a.namespace) > 0 {
+		if err := a.validateRunNetnsDirFlag(); err != nil {
+			return err
+		}
+
+		inode := fmt.Sprintf(`%s/%s`, a.runNetnsDir, a.namespace)
+		namespace, err := ns.GetNS(inode)
+		if err != nil {
+			return err
+		}
+
+		return namespace.Do(func(_ ns.NetNS) error {
+			return nstc.DetachBPFProg(a.sysId(), a.dev, a.tcIngress, a.tcEgress)
+		})
+	} else {
+		return nstc.DetachBPFProg(a.sysId(), a.dev, a.tcIngress, a.tcEgress)
+	}
 }

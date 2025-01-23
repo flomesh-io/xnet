@@ -12,6 +12,8 @@ const udpFlowFlushDescription = ``
 const udpFlowFlushExample = ``
 
 type udpFlowFlushCmd struct {
+	sys
+
 	idleSeconds int
 	batchSize   int
 }
@@ -33,6 +35,7 @@ func newUDPFlowFlush() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	flowFlush.sys.addFlags(f)
 	f.IntVar(&flowFlush.idleSeconds, "idle-seconds", 3600, "--idle-seconds=3600")
 	f.IntVar(&flowFlush.batchSize, "batch-size", 1024, "--batch-size=1024")
 
@@ -40,7 +43,7 @@ func newUDPFlowFlush() *cobra.Command {
 }
 
 func (a *udpFlowFlushCmd) run() error {
-	items, err := maps.FlushIdleUDPFlowEntries(a.idleSeconds, a.batchSize)
+	items, err := maps.FlushIdleUDPFlowEntries(a.sysId(), a.idleSeconds, a.batchSize)
 	if err != nil {
 		return err
 	}

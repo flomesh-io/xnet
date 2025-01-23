@@ -13,6 +13,7 @@ const tracePortAddDescription = ``
 const tracePortAddExample = ``
 
 type tracePortAddCmd struct {
+	sys
 	sa
 	tc
 }
@@ -34,6 +35,7 @@ func newTracePortAdd() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	tracePortAdd.sys.addFlags(f)
 	tracePortAdd.sa.addPortFlag(f)
 	tracePortAdd.tc.addFlags(f)
 
@@ -57,5 +59,5 @@ func (a *tracePortAddCmd) run() error {
 	} else {
 		traceVal.TcDir[maps.TC_DIR_EGR] = 0
 	}
-	return maps.AddTracePortEntry(traceKey, traceVal)
+	return maps.AddTracePortEntry(a.sysId(), traceKey, traceVal)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 
+	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
 	"github.com/flomesh-io/xnet/pkg/xnet/cni/plugin"
 	"github.com/flomesh-io/xnet/pkg/xnet/ns"
 	"github.com/flomesh-io/xnet/pkg/xnet/tc"
@@ -54,12 +55,12 @@ func (s *server) CmdAdd(args *skel.CmdArgs) (err error) {
 	err = netNS.Do(func(_ ns.NetNS) error {
 		// attach tc to the device
 		if len(args.IfName) != 0 {
-			return tc.AttachBPFProg(args.IfName)
+			return tc.AttachBPFProg(maps.SysMesh, args.IfName, true, true)
 		}
 		ifaces, _ := net.Interfaces()
 		for _, iface := range ifaces {
 			if (iface.Flags&net.FlagLoopback) == 0 && (iface.Flags&net.FlagUp) != 0 {
-				return tc.AttachBPFProg(iface.Name)
+				return tc.AttachBPFProg(maps.SysMesh, iface.Name, true, true)
 			}
 		}
 		return fmt.Errorf("device not found for %s", args.Netns)

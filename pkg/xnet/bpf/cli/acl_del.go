@@ -13,6 +13,7 @@ const aclDelDescription = ``
 const aclDelExample = ``
 
 type aclDelCmd struct {
+	sys
 	sa
 	proto
 }
@@ -34,6 +35,7 @@ func newAclDel() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	aclDel.sys.addFlags(f)
 	aclDel.sa.addFlags(f)
 	aclDel.proto.addFlags(f)
 
@@ -57,14 +59,14 @@ func (a *aclDelCmd) run() error {
 
 	if a.tcp {
 		aclKey.Proto = uint8(maps.IPPROTO_TCP)
-		if err = maps.DelAclEntry(aclKey); err != nil {
+		if err = maps.DelAclEntry(a.sysId(), aclKey); err != nil {
 			return err
 		}
 	}
 
 	if a.udp {
 		aclKey.Proto = uint8(maps.IPPROTO_UDP)
-		if err = maps.DelAclEntry(aclKey); err != nil {
+		if err = maps.DelAclEntry(a.sysId(), aclKey); err != nil {
 			return err
 		}
 	}

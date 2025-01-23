@@ -12,12 +12,12 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
 )
 
-func GetXNetCfg() (*CfgVal, error) {
+func GetXNetCfg(sysId SysID) (*CfgVal, error) {
 	cfgVal := new(CfgVal)
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_CFG)
 	if cfgMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer cfgMap.Close()
-		cfgKey := CfgKey(0)
+		cfgKey := CfgKey(sysId)
 		err = cfgMap.Lookup(unsafe.Pointer(&cfgKey), unsafe.Pointer(cfgVal))
 		return cfgVal, err
 	} else {
@@ -25,11 +25,11 @@ func GetXNetCfg() (*CfgVal, error) {
 	}
 }
 
-func SetXNetCfg(cfgVal *CfgVal) error {
+func SetXNetCfg(sysId SysID, cfgVal *CfgVal) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_CFG)
 	if cfgMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer cfgMap.Close()
-		cfgKey := CfgKey(0)
+		cfgKey := CfgKey(sysId)
 		return cfgMap.Update(unsafe.Pointer(&cfgKey), unsafe.Pointer(cfgVal), ebpf.UpdateAny)
 	} else {
 		return err

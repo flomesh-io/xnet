@@ -12,6 +12,7 @@ const natDelDescription = ``
 const natDelExample = ``
 
 type natDelCmd struct {
+	sys
 	nat
 }
 
@@ -32,6 +33,7 @@ func newNatDel() *cobra.Command {
 
 	//del flags
 	f := cmd.Flags()
+	natDel.sys.addFlags(f)
 	natDel.sa.addFlags(f)
 	natDel.proto.addFlags(f)
 	natDel.tc.addFlags(f)
@@ -46,17 +48,17 @@ func (a *natDelCmd) run() error {
 	} else {
 		if a.ep.addr.IsUnspecified() || a.ep.port == 0 {
 			for _, natKey := range natKeys {
-				if err = maps.DelNatEntry(&natKey); err != nil {
+				if err = maps.DelNatEntry(a.sysId(), &natKey); err != nil {
 					fmt.Println(err.Error())
 				}
 			}
 		} else {
 			for _, natKey := range natKeys {
-				natVal, _ := maps.GetNatEntry(&natKey)
+				natVal, _ := maps.GetNatEntry(a.sysId(), &natKey)
 				if err = natVal.DelEp(a.ep.addr, a.ep.port); err != nil {
 					fmt.Printf(`del ep addr: %s port: %d fail: %s\n`, a.ep.addr, a.ep.port, err.Error())
 				} else {
-					if err = maps.AddNatEntry(&natKey, natVal); err != nil {
+					if err = maps.AddNatEntry(a.sysId(), &natKey, natVal); err != nil {
 						fmt.Printf(`del nat: {"key":%s,"value":%s} fail: %s`, natKey.String(), natVal.String(), err.Error())
 					}
 				}

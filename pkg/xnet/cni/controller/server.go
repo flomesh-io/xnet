@@ -14,6 +14,7 @@ import (
 	"github.com/flomesh-io/xnet/pkg/k8s"
 	"github.com/flomesh-io/xnet/pkg/messaging"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/load"
+	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
 	"github.com/flomesh-io/xnet/pkg/xnet/cni"
 	"github.com/flomesh-io/xnet/pkg/xnet/cni/deliver"
 	"github.com/flomesh-io/xnet/pkg/xnet/volume"
@@ -69,6 +70,7 @@ func NewServer(ctx context.Context, kubeController k8s.Controller, msgBroker *me
 func (s *server) Start() error {
 	load.ProgLoadAll()
 	load.InitMeshConfig()
+	load.InitE4lbConfig()
 
 	if err := os.RemoveAll(s.unixSockPath); err != nil {
 		log.Fatal().Err(err)
@@ -116,11 +118,11 @@ func (s *server) Start() error {
 	go s.CheckAndRepairPods()
 
 	if len(s.flushTCPConnTrackCrontab) > 0 && s.flushTCPConnTrackIdleSeconds > 0 && s.flushTCPConnTrackBatchSize > 0 {
-		go s.idleTCPConnTrackFlush()
+		go s.idleTCPConnTrackFlush(maps.SysMesh)
 	}
 
 	if len(s.flushUDPConnTrackCrontab) > 0 && s.flushUDPConnTrackIdleSeconds > 0 && s.flushUDPConnTrackBatchSize > 0 {
-		go s.idleUDPConnTrackFlush()
+		go s.idleUDPConnTrackFlush(maps.SysMesh)
 	}
 
 	return nil

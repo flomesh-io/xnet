@@ -20,7 +20,19 @@
 
 char __LICENSE[] SEC("license") = "GPL";
 
-INTERNAL(int) sidecar_dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
+SEC("classifier/pass")
+int pass(skb_t *skb)
+{
+    return TC_ACT_OK;
+}
+
+SEC("classifier/drop")
+int drop(skb_t *skb)
+{
+    return TC_ACT_SHOT;
+}
+
+INTERNAL(int) dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
 {
     if (XFLAG_HAS(pkt->nfs[pkt->tc_dir], NF_XNAT)) {
         if (pkt->flow.proto == IPPROTO_TCP) {
@@ -84,7 +96,7 @@ INTERNAL(int) sidecar_dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
         }
     }
 
-    if (XFLAG_HAS(pkt->nfs[pkt->tc_dir], NF_RDIR)) {
+    if (XFLAG_HAS(pkt->nfs[pkt->tc_dir], NF_EXHW)) {
         void *start = XPKT_PTR(XPKT_DATA(skb));
         void *dend = XPKT_PTR(XPKT_DATA_END(skb));
         struct ethhdr *eth = XPKT_PTR(start);
@@ -94,8 +106,19 @@ INTERNAL(int) sidecar_dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
 
         XMAC_COPY(eth->h_dest, pkt->smac);
         XMAC_COPY(eth->h_source, pkt->dmac);
+    }
+
+    if (XFLAG_HAS(pkt->nfs[pkt->tc_dir], NF_RDIR)) {
+        if (pkt->ofi > 0) {
+            if (cfg->ipv4_trace_nat_on) {
+                FSM_DBG("[DBG] RDRT OFI: %d FLAGS: %d\n", pkt->ofi,
+                        pkt->oflags);
+            }
+            return bpf_redirect(pkt->ofi, pkt->oflags);
+        }
+
         if (cfg->ipv4_trace_nat_on) {
-            FSM_DBG("[DBG] RDRT \n");
+            FSM_DBG("[DBG] RDRT IFI: %d FLAGS: %d\n", pkt->ifi, 0);
         }
         return bpf_redirect(pkt->ifi, 0);
     }
@@ -115,9 +138,8 @@ INTERNAL(int) sidecar_dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg)
     return TC_ACT_OK;
 }
 
-INTERNAL(int) sidecar_main(skb_t *skb, xpkt_t *pkt)
+INTERNAL(int) process(skb_t *skb, xpkt_t *pkt)
 {
-    int z = 0;
     decoder_t decoder;
     decoder.start = XPKT_PTR(XPKT_DATA(skb));
     decoder.data_begin = XPKT_PTR(decoder.start);
@@ -128,7 +150,7 @@ INTERNAL(int) sidecar_main(skb_t *skb, xpkt_t *pkt)
         goto decode_fail;
     }
 
-    cfg_t *cfg = bpf_map_lookup_elem(&fsm_xcfg, &z);
+    cfg_t *cfg = bpf_map_lookup_elem(&fsm_xcfg, &pkt->flow.sys);
     if (!cfg) {
         return TC_ACT_SHOT;
     }
@@ -222,6 +244,10 @@ INTERNAL(int) sidecar_main(skb_t *skb, xpkt_t *pkt)
                 ntohl(t->ack_seq), skb->ifindex);
     }
 
+    if (pkt->flow.sys == SYS_NOOP) {
+        return TC_ACT_OK;
+    }
+
     if (cfg->ipv4_acl_check_on) {
         xpkt_acl_check(skb, pkt, cfg);
         if (cfg->ipv4_trace_acl_on) {
@@ -234,7 +260,7 @@ INTERNAL(int) sidecar_main(skb_t *skb, xpkt_t *pkt)
         FSM_DBG("[DBG] TRANS: %d\n", trans);
     }
 
-    return sidecar_dispatch(skb, pkt, cfg);
+    return dispatch(skb, pkt, cfg);
 
 decode_fail:
     if (ret < DECODE_OK) {
@@ -243,8 +269,110 @@ decode_fail:
     return TC_ACT_SHOT;
 }
 
-SEC("classifier/sidecar/ingress")
-int sidecar_ingress(skb_t *skb)
+INTERNAL(int) decode(skb_t *skb, xpkt_t *pkt)
+{
+    decoder_t decoder;
+    decoder.start = XPKT_PTR(XPKT_DATA(skb));
+    decoder.data_begin = XPKT_PTR(decoder.start);
+    decoder.data_end = XPKT_PTR(XPKT_DATA_END(skb));
+
+    int ret = decode_eth(&decoder, skb, pkt);
+    if (ret != DECODE_PASS) {
+        goto decode_fail;
+    }
+
+    cfg_t *cfg = bpf_map_lookup_elem(&fsm_xcfg, &pkt->flow.sys);
+    if (!cfg) {
+        return TC_ACT_SHOT;
+    }
+
+    pkt->v6 = 0;
+    pkt->l3_off = XPKT_PTR_SUB(decoder.data_begin, decoder.start);
+
+    if (pkt->l2_type == htons(ETH_P_IP)) {
+        ret = decode_ipv4(&decoder, skb, pkt);
+    } else if (pkt->l2_type == htons(ETH_P_IPV6)) {
+        if (cfg->ipv6_proto_deny_all) {
+            return TC_ACT_SHOT;
+        }
+        return TC_ACT_OK;
+    } else {
+        return TC_ACT_OK;
+    }
+
+    if (ret != DECODE_PASS) {
+        goto decode_fail;
+    }
+
+    if (pkt->ipv4_frag == 0) {
+        if (pkt->flow.proto == IPPROTO_TCP) {
+            if (cfg->ipv4_tcp_proto_deny_all) {
+                return TC_ACT_SHOT;
+            }
+            if (cfg->ipv4_tcp_proto_allow_all) {
+                return TC_ACT_OK;
+            }
+            ret = decode_tcp(&decoder, skb, pkt);
+            if (ret != DECODE_PASS) {
+                goto decode_fail;
+            }
+        } else if (pkt->flow.proto == IPPROTO_UDP) {
+            if (cfg->ipv4_udp_proto_deny_all) {
+                return TC_ACT_SHOT;
+            }
+            if (cfg->ipv4_udp_proto_allow_all) {
+                return TC_ACT_OK;
+            }
+            ret = decode_udp(&decoder, skb, pkt);
+            if (ret != DECODE_PASS) {
+                goto decode_fail;
+            }
+        } else {
+            if (cfg->ipv4_oth_proto_deny_all) {
+                return TC_ACT_SHOT;
+            }
+            return TC_ACT_OK;
+        }
+    }
+
+    FSM_DBG("\n");
+    if (pkt->tc_dir == TC_DIR_IGR) {
+        FSM_DBG("[DBG] TC -->INGRESS\n");
+    }
+    if (pkt->tc_dir == TC_DIR_EGR) {
+        FSM_DBG("[DBG] TC EGRESS -->\n");
+    }
+
+    FSM_DBG("[DBG] SRC %pI4:%d\n", &pkt->flow.saddr4, ntohs(pkt->flow.sport));
+    FSM_DBG("[DBG] DST %pI4:%d\n", &pkt->flow.daddr4, ntohs(pkt->flow.dport));
+    FSM_DBG("[DBG] SHW %02x:%02x:%02x\n", pkt->smac[0], pkt->smac[1],
+            pkt->smac[2]);
+    FSM_DBG("[DBG]     %02x:%02x:%02x\n", pkt->smac[3], pkt->smac[4],
+            pkt->smac[5]);
+    FSM_DBG("[DBG] DHW %02x:%02x:%02x\n", pkt->dmac[0], pkt->dmac[1],
+            pkt->dmac[2]);
+    FSM_DBG("[DBG]     %02x:%02x:%02x\n", pkt->dmac[3], pkt->dmac[4],
+            pkt->dmac[5]);
+    void *dend = XPKT_PTR(XPKT_DATA_END(skb));
+    struct tcphdr *t = XPKT_PTR_ADD(XPKT_DATA(skb), pkt->l4_off);
+    if ((void *)(t + 1) > dend) {
+        return -1;
+    }
+    FSM_DBG("[DBG] SYN: %d ACK: %d FIN: %d\n", t->syn, t->ack, t->fin);
+    FSM_DBG("[DBG] SEQ: %u ACK_SEQ: %u IFI: %u\n", ntohl(t->seq),
+            ntohl(t->ack_seq), skb->ifindex);
+
+    return TC_ACT_OK;
+
+decode_fail:
+    if (ret < DECODE_OK) {
+        return TC_ACT_SHOT;
+    }
+    return TC_ACT_SHOT;
+}
+
+SEC("classifier/noop/ingress")
+int noop_ingress(skb_t *skb)
 {
     int z = 0;
     xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
@@ -255,12 +383,13 @@ int sidecar_ingress(skb_t *skb)
     memset(pkt, 0, sizeof *pkt);
     pkt->tc_dir = TC_DIR_IGR;
     pkt->ifi = skb->ifindex;
+    pkt->flow.sys = SYS_NOOP;
 
-    return sidecar_main(skb, pkt);
+    return decode(skb, pkt);
 }
 
-SEC("classifier/sidecar/egress")
-int sidecar_egress(skb_t *skb)
+SEC("classifier/noop/egress")
+int noop_egress(skb_t *skb)
 {
     int z = 0;
     xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
@@ -271,18 +400,75 @@ int sidecar_egress(skb_t *skb)
     memset(pkt, 0, sizeof *pkt);
     pkt->tc_dir = TC_DIR_EGR;
     pkt->ifi = skb->ifindex;
+    pkt->flow.sys = SYS_NOOP;
 
-    return sidecar_main(skb, pkt);
+    return decode(skb, pkt);
 }
 
-SEC("classifier/pass")
-int sidecar_pass(skb_t *skb)
+SEC("classifier/mesh/ingress")
+int mesh_ingress(skb_t *skb)
 {
-    return TC_ACT_OK;
+    int z = 0;
+    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
+    if (!pkt) {
+        return TC_ACT_SHOT;
+    }
+
+    memset(pkt, 0, sizeof *pkt);
+    pkt->tc_dir = TC_DIR_IGR;
+    pkt->ifi = skb->ifindex;
+    pkt->flow.sys = SYS_MESH;
+
+    return process(skb, pkt);
 }
 
-SEC("classifier/drop")
-int sidecar_drop(skb_t *skb)
+SEC("classifier/mesh/egress")
+int mesh_egress(skb_t *skb)
 {
-    return TC_ACT_SHOT;
+    int z = 0;
+    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
+    if (!pkt) {
+        return TC_ACT_SHOT;
+    }
+
+    memset(pkt, 0, sizeof *pkt);
+    pkt->tc_dir = TC_DIR_EGR;
+    pkt->ifi = skb->ifindex;
+    pkt->flow.sys = SYS_MESH;
+
+    return process(skb, pkt);
+}
+
+SEC("classifier/e4lb/ingress")
+int e4lb_ingress(skb_t *skb)
+{
+    int z = 0;
+    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
+    if (!pkt) {
+        return TC_ACT_SHOT;
+    }
+
+    memset(pkt, 0, sizeof *pkt);
+    pkt->tc_dir = TC_DIR_IGR;
+    pkt->ifi = skb->ifindex;
+    pkt->flow.sys = SYS_E4LB;
+
+    return process(skb, pkt);
+}
+
+SEC("classifier/e4lb/egress")
+int e4lb_egress(skb_t *skb)
+{
+    int z = 0;
+    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
+    if (!pkt) {
+        return TC_ACT_SHOT;
+    }
+
+    memset(pkt, 0, sizeof *pkt);
+    pkt->tc_dir = TC_DIR_EGR;
+    pkt->ifi = skb->ifindex;
+    pkt->flow.sys = SYS_E4LB;
+
+    return process(skb, pkt);
 }

@@ -13,6 +13,7 @@ const tracePortDelDescription = ``
 const tracePortDelExample = ``
 
 type tracePortDelCmd struct {
+	sys
 	sa
 }
 
@@ -33,6 +34,7 @@ func newTracePortDel() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	tracePortDel.sys.addFlags(f)
 	tracePortDel.sa.addPortFlag(f)
 
 	return cmd
@@ -44,5 +46,5 @@ func (a *tracePortDelCmd) run() error {
 	}
 	traceKey := new(maps.TracePortKey)
 	traceKey.Port = util.HostToNetShort(a.port)
-	return maps.DelTracePortEntry(traceKey)
+	return maps.DelTracePortEntry(a.sysId(), traceKey)
 }

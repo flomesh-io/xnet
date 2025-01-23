@@ -12,6 +12,7 @@ const natGetDescription = ``
 const natGetExample = ``
 
 type natGetCmd struct {
+	sys
 	nat
 }
 
@@ -32,6 +33,7 @@ func newNatGet() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
+	natGet.sys.addFlags(f)
 	natGet.sa.addFlags(f)
 	natGet.proto.addFlags(f)
 	natGet.tc.addFlags(f)
@@ -51,7 +53,7 @@ func (a *natGetCmd) run() error {
 			} else {
 				fmt.Println(`,`)
 			}
-			if natVal, err := maps.GetNatEntry(&natKey); err == nil {
+			if natVal, err := maps.GetNatEntry(a.sysId(), &natKey); err == nil {
 				fmt.Printf(`{"key":%s,"value":%s}`, natKey.String(), natVal.String())
 			} else {
 				fmt.Printf(`{"key":%s,"value":"%s"}`, natKey.String(), err.Error())
