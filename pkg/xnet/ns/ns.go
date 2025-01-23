@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	safeHostNetnsDir = "/host/run/netns/"
-	safeRunNetnsDir  = "/var/run/netns/"
+	safeHostNetnsDir   = "/host/run/netns/"
+	safeRunNetnsDir    = "/var/run/netns/"
+	safeNetnsDirPrefix = "/proc/"
+	safeNetnsDirSuffix = "/ns/net"
 )
 
 // GetCurrentNS returns an object representing the current OS thread's network namespace
@@ -127,8 +129,11 @@ func IsNSorErr(nspath string) error {
 // GetNS returns an object representing the namespace referred to by @path
 func GetNS(nspath string) (NetNS, error) {
 	absPath, err := filepath.Abs(nspath)
-	if err != nil || (!strings.HasPrefix(absPath, safeHostNetnsDir) && !strings.HasPrefix(absPath, safeRunNetnsDir)) {
-		return nil, fmt.Errorf("invalid namespace path: %s", nspath)
+	if err != nil ||
+		(!strings.HasPrefix(absPath, safeHostNetnsDir) &&
+			!strings.HasPrefix(absPath, safeRunNetnsDir) &&
+			!(strings.HasPrefix(absPath, safeNetnsDirPrefix) && strings.HasSuffix(absPath, safeNetnsDirSuffix))) {
+		return nil, fmt.Errorf("invalid namespace path: %s absPath: %s", nspath, absPath)
 	}
 	err = IsNSorErr(nspath)
 	if err != nil {
