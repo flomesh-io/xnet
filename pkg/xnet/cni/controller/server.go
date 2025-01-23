@@ -17,16 +17,21 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
 	"github.com/flomesh-io/xnet/pkg/xnet/cni"
 	"github.com/flomesh-io/xnet/pkg/xnet/cni/deliver"
+	"github.com/flomesh-io/xnet/pkg/xnet/e4lb"
 	"github.com/flomesh-io/xnet/pkg/xnet/volume"
 )
 
 type server struct {
 	ctx            context.Context
-	unixSockPath   string
 	kubeController k8s.Controller
 	msgBroker      *messaging.Broker
-	cniReady       chan struct{}
 	stop           chan struct{}
+
+	enableE4lb bool
+	enableMesh bool
+
+	unixSockPath string
+	cniReady     chan struct{}
 
 	filterPortInbound  string
 	filterPortOutbound string
@@ -42,7 +47,9 @@ type server struct {
 
 // NewServer returns a new CNI Server.
 // the path this the unix path to listen.
-func NewServer(ctx context.Context, kubeController k8s.Controller, msgBroker *messaging.Broker, stop chan struct{},
+func NewServer(ctx context.Context,
+	kubeController k8s.Controller, msgBroker *messaging.Broker, stop chan struct{},
+	enableE4lb, enableMesh bool,
 	filterPortInbound, filterPortOutbound string,
 	flushTCPConnTrackCrontab string, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize int,
 	flushUDPConnTrackCrontab string, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize int) Server {
@@ -53,6 +60,9 @@ func NewServer(ctx context.Context, kubeController k8s.Controller, msgBroker *me
 		cniReady:       make(chan struct{}, 1),
 		ctx:            ctx,
 		stop:           stop,
+
+		enableE4lb: enableE4lb,
+		enableMesh: enableMesh,
 
 		filterPortInbound:  filterPortInbound,
 		filterPortOutbound: filterPortOutbound,
@@ -69,60 +79,72 @@ func NewServer(ctx context.Context, kubeController k8s.Controller, msgBroker *me
 
 func (s *server) Start() error {
 	load.ProgLoadAll()
-	load.InitMeshConfig()
-	load.InitE4lbConfig()
 
-	if err := os.RemoveAll(s.unixSockPath); err != nil {
-		log.Fatal().Err(err)
-	}
-	listen, err := net.Listen("unix", s.unixSockPath)
-	if err != nil {
-		log.Fatal().Msgf("listen error:%v", err)
+	if !s.enableE4lb {
+		e4lb.E4lbOff()
+	} else {
+		load.InitE4lbConfig()
+		e4lb.E4lbOn()
 	}
 
-	r := mux.NewRouter()
-	r.Path(cni.CreatePodURI).
-		Methods("POST").
-		HandlerFunc(s.PodCreated)
+	if !s.enableMesh {
+		s.uninstallCNI()
+		go s.CheckAndResetPods()
+	} else {
+		load.InitMeshConfig()
 
-	r.Path(cni.DeletePodURI).
-		Methods("POST").
-		HandlerFunc(s.PodDeleted)
-
-	ss := http.Server{
-		Handler:           r,
-		WriteTimeout:      10 * time.Second,
-		ReadTimeout:       10 * time.Second,
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-	go func() {
-		go ss.Serve(listen) // nolint: errcheck
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT)
-		select {
-		case <-ch:
-			s.Stop()
-		case <-s.stop:
-			s.Stop()
+		if err := os.RemoveAll(s.unixSockPath); err != nil {
+			log.Fatal().Msg(err.Error())
 		}
-		_ = ss.Shutdown(s.ctx)
-	}()
+		listen, err := net.Listen("unix", s.unixSockPath)
+		if err != nil {
+			log.Fatal().Msgf("listen error:%v", err)
+		}
 
-	s.installCNI()
+		r := mux.NewRouter()
+		r.Path(cni.CreatePodURI).
+			Methods("POST").
+			HandlerFunc(s.PodCreated)
 
-	// wait for cni to be ready
-	<-s.cniReady
+		r.Path(cni.DeletePodURI).
+			Methods("POST").
+			HandlerFunc(s.PodDeleted)
 
-	go s.broadcastListener()
+		ss := http.Server{
+			Handler:           r,
+			WriteTimeout:      10 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			ReadHeaderTimeout: 10 * time.Second,
+		}
+		go func() {
+			go ss.Serve(listen) // nolint: errcheck
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT)
+			select {
+			case <-ch:
+				s.Stop()
+			case <-s.stop:
+				s.Stop()
+			}
+			_ = ss.Shutdown(s.ctx)
+		}()
 
-	go s.CheckAndRepairPods()
+		s.installCNI()
 
-	if len(s.flushTCPConnTrackCrontab) > 0 && s.flushTCPConnTrackIdleSeconds > 0 && s.flushTCPConnTrackBatchSize > 0 {
-		go s.idleTCPConnTrackFlush(maps.SysMesh)
-	}
+		// wait for cni to be ready
+		<-s.cniReady
 
-	if len(s.flushUDPConnTrackCrontab) > 0 && s.flushUDPConnTrackIdleSeconds > 0 && s.flushUDPConnTrackBatchSize > 0 {
-		go s.idleUDPConnTrackFlush(maps.SysMesh)
+		go s.broadcastListener()
+
+		go s.CheckAndRepairPods()
+
+		if len(s.flushTCPConnTrackCrontab) > 0 && s.flushTCPConnTrackIdleSeconds > 0 && s.flushTCPConnTrackBatchSize > 0 {
+			go s.idleTCPConnTrackFlush(maps.SysMesh)
+		}
+
+		if len(s.flushUDPConnTrackCrontab) > 0 && s.flushUDPConnTrackIdleSeconds > 0 && s.flushUDPConnTrackBatchSize > 0 {
+			go s.idleUDPConnTrackFlush(maps.SysMesh)
+		}
 	}
 
 	return nil
@@ -132,10 +154,10 @@ func (s *server) installCNI() {
 	install := deliver.NewInstaller(`/app`)
 	go func() {
 		if err := install.Run(context.TODO(), s.cniReady); err != nil {
-			log.Error().Err(err)
+			log.Error().Msg(err.Error())
 			close(s.cniReady)
 		}
-		if err := install.Cleanup(); err != nil {
+		if err := install.Cleanup(context.TODO()); err != nil {
 			log.Error().Msgf("Failed to clean up CNI: %v", err)
 		}
 	}()
@@ -144,10 +166,17 @@ func (s *server) installCNI() {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT)
 		<-ch
-		if err := install.Cleanup(); err != nil {
+		if err := install.Cleanup(context.TODO()); err != nil {
 			log.Error().Msgf("Failed to clean up CNI: %v", err)
 		}
 	}()
+}
+
+func (s *server) uninstallCNI() {
+	install := deliver.NewInstaller(`/app`)
+	if err := install.Cleanup(context.TODO()); err != nil {
+		log.Error().Msgf("Failed to clean up CNI: %v", err)
+	}
 }
 
 func (s *server) Stop() {

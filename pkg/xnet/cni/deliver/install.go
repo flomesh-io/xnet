@@ -54,8 +54,16 @@ func (in *Installer) Run(ctx context.Context, cniReady chan struct{}) error {
 }
 
 // Cleanup remove CNI's config, kubeconfig file, and binaries.
-func (in *Installer) Cleanup() error {
+func (in *Installer) Cleanup(ctx context.Context) error {
 	log.Debug().Msg("Cleaning up.")
+	if len(in.cniConfigFilepath) == 0 {
+		cniConfigFilepath, err := in.getCNIConfigFilepath(ctx)
+		if err != nil {
+			return err
+		}
+		in.cniConfigFilepath = cniConfigFilepath
+	}
+
 	if len(in.cniConfigFilepath) > 0 && util.Exists(in.cniConfigFilepath) {
 		log.Debug().Msgf("removing cni config from cni config file: %s", in.cniConfigFilepath)
 
