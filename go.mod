@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.4
 
 require (
-	github.com/cilium/ebpf v0.17.1
+	github.com/cilium/ebpf v0.17.2
 	github.com/containernetworking/cni v1.2.3
 	github.com/cskr/pubsub v1.0.2
 	github.com/florianl/go-tc v0.4.4
