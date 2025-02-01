@@ -7,6 +7,8 @@ const (
 
 	PluginName = "xcni"
 
+	PluginLoopBack = "loopback"
+
 	// CreatePodURI is the route for cni plugin for creating pod
 	CreatePodURI = "/v1/cni/create-pod"
 	// DeletePodURI is the route for cni plugin for deleting pod
