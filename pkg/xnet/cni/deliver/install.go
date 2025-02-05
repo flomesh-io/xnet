@@ -108,8 +108,13 @@ func (in *Installer) Cleanup(ctx context.Context) error {
 }
 
 func (in *Installer) copyBinaries() error {
-	dstFilepath := path.Join(volume.CniBin.MountPath, cni.PluginName)
-	if exists := util.Exists(dstFilepath); exists {
+	loopbackFile := path.Join(volume.CniBin.MountPath, cni.PluginLoopBack)
+	if exists := util.Exists(loopbackFile); !exists {
+		return fmt.Errorf("%s is not cni bin directory for missing lookback cli", volume.CniBin.MountPath)
+	}
+
+	dstFile := path.Join(volume.CniBin.MountPath, cni.PluginName)
+	if exists := util.Exists(dstFile); exists {
 		return nil
 	}
 
@@ -117,12 +122,11 @@ func (in *Installer) copyBinaries() error {
 		return fmt.Errorf("directory %s is not writable", volume.CniBin.MountPath)
 	}
 
-	srcFilepath := path.Join(in.workDir, fmt.Sprintf(`.%s/.%s`, bpf.FSM_PROG_NAME, cni.PluginName))
-	err := util.AtomicCopy(srcFilepath, volume.CniBin.MountPath, cni.PluginName)
-	if err != nil {
+	srcFile := path.Join(in.workDir, fmt.Sprintf(`.%s/.%s`, bpf.FSM_PROG_NAME, cni.PluginName))
+	if err := util.AtomicCopy(srcFile, volume.CniBin.MountPath, cni.PluginName); err != nil {
 		return err
 	}
-	log.Debug().Msgf("copied %s to %s", srcFilepath, dstFilepath)
+	log.Debug().Msgf("copied %s to %s", srcFile, dstFile)
 
 	return nil
 }

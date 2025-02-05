@@ -154,8 +154,8 @@ func (s *server) installCNI() {
 	install := deliver.NewInstaller(`/app`)
 	go func() {
 		if err := install.Run(context.TODO(), s.cniReady); err != nil {
-			log.Error().Msg(err.Error())
 			close(s.cniReady)
+			log.Fatal().Msg(err.Error())
 		}
 		if err := install.Cleanup(context.TODO()); err != nil {
 			log.Error().Msgf("Failed to clean up CNI: %v", err)
