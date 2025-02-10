@@ -40,16 +40,16 @@ func InitMeshConfig() {
 	if cfgVal, cfgErr := maps.GetXNetCfg(maps.SysMesh); cfgErr != nil {
 		log.Fatal().Msg(cfgErr.Error())
 	} else {
-		if !cfgVal.IsSet(maps.CfgFlagOffsetIPv4UDPProtoAllowAll) {
-			if !cfgVal.IsSet(maps.CfgFlagOffsetIPv4UDPProtoDenyAll) &&
-				!cfgVal.IsSet(maps.CfgFlagOffsetIPv4UDPNatByIpPortOn) &&
-				!cfgVal.IsSet(maps.CfgFlagOffsetIPv4UDPNatByIpOn) &&
-				!cfgVal.IsSet(maps.CfgFlagOffsetIPv4UDPNatByPortOn) &&
-				!cfgVal.IsSet(maps.CfgFlagOffsetIPv4UDPNatAllOff) {
-				cfgVal.Set(maps.CfgFlagOffsetIPv4UDPProtoAllowAll)
+		if !cfgVal.IPv4().IsSet(maps.CfgFlagOffsetUDPProtoAllowAll) {
+			if !cfgVal.IPv4().IsSet(maps.CfgFlagOffsetUDPProtoDenyAll) &&
+				!cfgVal.IPv4().IsSet(maps.CfgFlagOffsetUDPNatByIpPortOn) &&
+				!cfgVal.IPv4().IsSet(maps.CfgFlagOffsetUDPNatByIpOn) &&
+				!cfgVal.IPv4().IsSet(maps.CfgFlagOffsetUDPNatByPortOn) &&
+				!cfgVal.IPv4().IsSet(maps.CfgFlagOffsetUDPNatAllOff) {
+				cfgVal.IPv4().Set(maps.CfgFlagOffsetUDPProtoAllowAll)
 			}
 		}
-		cfgVal.Set(maps.CfgFlagOffsetIPv4AclCheckOn)
+		cfgVal.IPv4().Set(maps.CfgFlagOffsetAclCheckOn)
 		if cfgErr = maps.SetXNetCfg(maps.SysMesh, cfgVal); cfgErr != nil {
 			log.Fatal().Msg(cfgErr.Error())
 		}
@@ -60,12 +60,12 @@ func InitE4lbConfig() {
 	if cfgVal, cfgErr := maps.GetXNetCfg(maps.SysE4lb); cfgErr != nil {
 		log.Fatal().Msg(cfgErr.Error())
 	} else {
-		cfgVal.Set(maps.CfgFlagOffsetIPv4TCPNatAllOff)
-		cfgVal.Set(maps.CfgFlagOffsetIPv4TCPNatByIpPortOn)
-		cfgVal.Set(maps.CfgFlagOffsetIPv4TCPProtoAllowNatEscape)
-		cfgVal.Set(maps.CfgFlagOffsetIPv4UDPProtoAllowAll)
-		cfgVal.Clear(maps.CfgFlagOffsetIPv4OTHProtoDenyAll)
-		cfgVal.Clear(maps.CfgFlagOffsetIPv6ProtoDenyAll)
+		cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPNatAllOff)
+		cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPNatByIpPortOn)
+		cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPProtoAllowNatEscape)
+		cfgVal.IPv4().Set(maps.CfgFlagOffsetUDPProtoAllowAll)
+		cfgVal.IPv4().Clear(maps.CfgFlagOffsetOTHProtoDenyAll)
+		cfgVal.IPv6().Clear(maps.CfgFlagOffsetDenyAll)
 		if cfgErr = maps.SetXNetCfg(maps.SysE4lb, cfgVal); cfgErr != nil {
 			log.Fatal().Msg(cfgErr.Error())
 		}

@@ -30,8 +30,12 @@ func _duration_(atime uint64) string {
 	return escape.String()
 }
 
-func _ip_(ipNb uint32) string {
-	return util.IntToIPv4(ipNb).String()
+func _ip_(ipNb [4]uint32) string {
+	if ipNb[1] == 0 && ipNb[2] == 0 && ipNb[3] == 0 {
+		return util.IntToIPv4(ipNb[0]).String()
+	} else {
+		return util.Int4ToIPv6(ipNb).String()
+	}
 }
 
 func _port_(port uint16) uint16 {

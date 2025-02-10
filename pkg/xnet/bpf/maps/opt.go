@@ -91,10 +91,10 @@ func showOptEntries(emap string) {
 
 func (t *OptKey) String() string {
 	return fmt.Sprintf(`{"sys": "%s","local_addr": "%s","remote_addr": "%s","local_port": %d,"remote_port": %d,"proto": "%s","v6": %t}`,
-		_sys_(t.Sys), _ip_(t.Laddr[0]), _ip_(t.Raddr[0]), _port_(t.Lport), _port_(t.Rport), _proto_(t.Proto), _bool_(t.V6))
+		_sys_(t.Sys), _ip_(t.Laddr), _ip_(t.Raddr), _port_(t.Lport), _port_(t.Rport), _proto_(t.Proto), _bool_(t.V6))
 }
 
 func (t *OptVal) String() string {
 	return fmt.Sprintf(`{"daddr": "%s","saddr": "%s","dport": %d,"sport": %d,"proto": "%s","v6": %t}`,
-		_ip_(t.Daddr[0]), _ip_(t.Saddr[0]), _port_(t.Dport), _port_(t.Sport), _proto_(t.Proto), _bool_(t.V6))
+		_ip_(t.Daddr), _ip_(t.Saddr), _port_(t.Dport), _port_(t.Sport), _proto_(t.Proto), _bool_(t.V6))
 }

@@ -1,5 +1,5 @@
-#ifndef __FSM_SIDECAR_XTYPES_H__
-#define __FSM_SIDECAR_XTYPES_H__
+#ifndef __FSM_XNETWORK_XTYPES_H__
+#define __FSM_XNETWORK_XTYPES_H__
 
 #define INTERNAL(type) __attribute__((__always_inline__)) static inline type
 
@@ -14,41 +14,44 @@ typedef __u32 sys_t;
 
 typedef struct __sk_buff skb_t;
 
-typedef struct xpkt_mesh_cfg_t {
+typedef struct xpkt_flags_t {
+    __u64 deny_all : 1;
+    __u64 allow_all : 1;
+    __u64 tcp_proto_deny_all : 1;
+    __u64 tcp_proto_allow_all : 1;
+    __u64 tcp_proto_allow_nat_escape : 1;
+    __u64 udp_proto_deny_all : 1;
+    __u64 udp_proto_allow_all : 1;
+    __u64 udp_proto_allow_nat_escape : 1;
+    __u64 oth_proto_deny_all : 1;
+    __u64 tcp_nat_by_ip_port_on : 1;
+    __u64 tcp_nat_by_ip_on : 1;
+    __u64 tcp_nat_all_off : 1;
+    __u64 tcp_nat_opt_on : 1;
+    __u64 tcp_nat_opt_with_local_addr_on : 1;
+    __u64 tcp_nat_opt_with_local_port_on : 1;
+    __u64 udp_nat_by_ip_port_on : 1;
+    __u64 udp_nat_by_ip_on : 1;
+    __u64 udp_nat_by_port_on : 1;
+    __u64 udp_nat_all_off : 1;
+    __u64 udp_nat_opt_on : 1;
+    __u64 udp_nat_opt_with_local_addr_on : 1;
+    __u64 udp_nat_opt_with_local_port_on : 1;
+    __u64 acl_check_on : 1;
+    __u64 trace_hdr_on : 1;
+    __u64 trace_nat_on : 1;
+    __u64 trace_opt_on : 1;
+    __u64 trace_acl_on : 1;
+    __u64 trace_flow_on : 1;
+    __u64 trace_by_ip_on : 1;
+    __u64 trace_by_port_on : 1;
+} __attribute__((packed)) flags_t;
+
+typedef struct xpkt_cfg_t {
     union {
         __u64 flags;
-        struct {
-            __u64 ipv6_proto_deny_all : 1;
-            __u64 ipv4_tcp_proto_deny_all : 1;
-            __u64 ipv4_tcp_proto_allow_all : 1;
-            __u64 ipv4_tcp_proto_allow_nat_escape : 1;
-            __u64 ipv4_udp_proto_deny_all : 1;
-            __u64 ipv4_udp_proto_allow_all : 1;
-            __u64 ipv4_udp_proto_allow_nat_escape : 1;
-            __u64 ipv4_oth_proto_deny_all : 1;
-            __u64 ipv4_tcp_nat_by_ip_port_on : 1;
-            __u64 ipv4_tcp_nat_by_ip_on : 1;
-            __u64 ipv4_tcp_nat_all_off : 1;
-            __u64 ipv4_tcp_nat_opt_on : 1;
-            __u64 ipv4_tcp_nat_opt_with_local_addr_on : 1;
-            __u64 ipv4_tcp_nat_opt_with_local_port_on : 1;
-            __u64 ipv4_udp_nat_by_ip_port_on : 1;
-            __u64 ipv4_udp_nat_by_ip_on : 1;
-            __u64 ipv4_udp_nat_by_port_on : 1;
-            __u64 ipv4_udp_nat_all_off : 1;
-            __u64 ipv4_udp_nat_opt_on : 1;
-            __u64 ipv4_udp_nat_opt_with_local_addr_on : 1;
-            __u64 ipv4_udp_nat_opt_with_local_port_on : 1;
-            __u64 ipv4_acl_check_on : 1;
-            __u64 ipv4_trace_hdr_on : 1;
-            __u64 ipv4_trace_nat_on : 1;
-            __u64 ipv4_trace_opt_on : 1;
-            __u64 ipv4_trace_acl_on : 1;
-            __u64 ipv4_trace_flow_on : 1;
-            __u64 ipv4_trace_by_ip_on : 1;
-            __u64 ipv4_trace_by_port_on : 1;
-        };
-    };
+        flags_t tflags;
+    } ipv4, ipv6;
 } __attribute__((packed)) cfg_t;
 
 #define saddr4 saddr[0]

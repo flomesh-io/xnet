@@ -81,7 +81,7 @@ func ShowAclEntries() {
 
 func (t *AclKey) String() string {
 	return fmt.Sprintf(`{"sys": "%s","addr": "%s","port": %d,"proto": "%s"}`,
-		_sys_(t.Sys), _ip_(t.Addr[0]), _port_(t.Port), _proto_(t.Proto))
+		_sys_(t.Sys), _ip_(t.Addr), _port_(t.Port), _proto_(t.Proto))
 }
 
 func (t *AclVal) String() string {

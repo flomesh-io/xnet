@@ -49,7 +49,7 @@ func FlushIdleTCPFlowEntries(sysId SysID, idleSeconds, batchSize int) (int, erro
 	var idleOptKeys []OptKey
 	if cfg, err := GetXNetCfg(sysId); err != nil {
 		return 0, nil
-	} else if natOptOn = cfg.IsSet(CfgFlagOffsetIPv4TCPNatOptOn); natOptOn {
+	} else if natOptOn = cfg.IPv4().IsSet(CfgFlagOffsetTCPNatOptOn) || cfg.IPv6().IsSet(CfgFlagOffsetTCPNatOptOn); natOptOn {
 		pinnedFile = fs.GetPinningFile(bpf.FSM_MAP_NAME_TCP_OPT)
 		optMap, mapErr = ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{})
 		if mapErr != nil {
@@ -57,10 +57,10 @@ func FlushIdleTCPFlowEntries(sysId SysID, idleSeconds, batchSize int) (int, erro
 		}
 		defer optMap.Close()
 
-		if cfg.IsSet(CfgFlagOffsetIPv4TCPNatOptWithLocalAddrOn) {
+		if cfg.IPv4().IsSet(CfgFlagOffsetTCPNatOptWithLocalAddrOn) || cfg.IPv6().IsSet(CfgFlagOffsetTCPNatOptWithLocalAddrOn) {
 			optWithLocalAddrOn = true
 		}
-		if cfg.IsSet(CfgFlagOffsetIPv4TCPNatOptWithLocalPortOn) {
+		if cfg.IPv4().IsSet(CfgFlagOffsetTCPNatOptWithLocalPortOn) || cfg.IPv6().IsSet(CfgFlagOffsetTCPNatOptWithLocalPortOn) {
 			optWithLocalPortOn = true
 		}
 	}
@@ -155,7 +155,7 @@ func (t *FlowTCPVal) String() string {
 		_duration_(t.Atime),
 		_nf_(t.Nfs[0]), _nf_(t.Nfs[1]),
 		_mac_(t.Xnat.Xmac[:]), _mac_(t.Xnat.Rmac[:]),
-		_ip_(t.Xnat.Xaddr[0]), _ip_(t.Xnat.Raddr[0]),
+		_ip_(t.Xnat.Xaddr), _ip_(t.Xnat.Raddr),
 		_port_(t.Xnat.Xport), _port_(t.Xnat.Rport),
 		_flow_dir_(t.Trans.Tcp.FinDir), _tcp_state_(t.Trans.Tcp.State),
 		t.Trans.Tcp.Conns[0].Seq, t.Trans.Tcp.Conns[0].PrevAckSeq, t.Trans.Tcp.Conns[0].PrevSeq, t.Trans.Tcp.Conns[0].InitAcks,

@@ -12,7 +12,7 @@ import (
 
 const (
 	safeHostNetnsDir   = "/host/run/netns/"
-	safeRunNetnsDir    = "/var/run/netns/"
+	safeVarRunNetnsDir = "/var/run/netns/"
 	safeNetnsDirPrefix = "/proc/"
 	safeNetnsDirSuffix = "/ns/net"
 )
@@ -40,7 +40,7 @@ func (ns *netNS) Close() error {
 	}
 
 	if err := ns.file.Close(); err != nil {
-		return fmt.Errorf("Failed to close %q: %v", ns.file.Name(), err)
+		return fmt.Errorf("failed to close %q: %v", ns.file.Name(), err)
 	}
 	ns.closed = true
 
@@ -129,19 +129,23 @@ func IsNSorErr(nspath string) error {
 // GetNS returns an object representing the namespace referred to by @path
 func GetNS(nspath string) (NetNS, error) {
 	absPath, err := filepath.Abs(nspath)
-	if err != nil ||
-		(!strings.HasPrefix(absPath, safeHostNetnsDir) &&
-			!strings.HasPrefix(absPath, safeRunNetnsDir) &&
-			!(strings.HasPrefix(absPath, safeNetnsDirPrefix) && strings.HasSuffix(absPath, safeNetnsDirSuffix))) {
-		return nil, fmt.Errorf("invalid namespace path: %s absPath: %s", nspath, absPath)
-	}
-	err = IsNSorErr(nspath)
 	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path: %v", err)
+	}
+
+	if !strings.EqualFold(absPath, nspath) &&
+		!strings.HasPrefix(absPath, safeHostNetnsDir) &&
+		!strings.HasPrefix(absPath, safeVarRunNetnsDir) &&
+		!(strings.HasPrefix(absPath, safeNetnsDirPrefix) && strings.HasSuffix(absPath, safeNetnsDirSuffix)) {
+		return nil, fmt.Errorf("invalid namespace path: %s absPath: %s error:%v", nspath, absPath, err)
+	}
+
+	if err = IsNSorErr(absPath); err != nil {
 		return nil, err
 	}
 
 	//#nosec G304
-	fd, err := os.Open(nspath)
+	fd, err := os.Open(absPath)
 	if err != nil {
 		return nil, err
 	}

@@ -44,6 +44,10 @@ type TraceIPVal FsmTrOpT
 type TracePortKey FsmTrPortT
 type TracePortVal FsmTrOpT
 
+type FlagT struct {
+	Flags uint64
+}
+
 type UpStream struct {
 	Addr string
 	Port uint16
@@ -80,66 +84,68 @@ const (
 )
 
 const (
-	CfgFlagOffsetIPv6ProtoDenyAll uint8 = iota
-	CfgFlagOffsetIPv4TCPProtoDenyAll
-	CfgFlagOffsetIPv4TCPProtoAllowAll
-	CfgFlagOffsetIPv4TCPProtoAllowNatEscape
-	CfgFlagOffsetIPv4UDPProtoDenyAll
-	CfgFlagOffsetIPv4UDPProtoAllowAll
-	CfgFlagOffsetIPv4UDPProtoAllowNatEscape
-	CfgFlagOffsetIPv4OTHProtoDenyAll
-	CfgFlagOffsetIPv4TCPNatByIpPortOn
-	CfgFlagOffsetIPv4TCPNatByIpOn
-	CfgFlagOffsetIPv4TCPNatAllOff
-	CfgFlagOffsetIPv4TCPNatOptOn
-	CfgFlagOffsetIPv4TCPNatOptWithLocalAddrOn
-	CfgFlagOffsetIPv4TCPNatOptWithLocalPortOn
-	CfgFlagOffsetIPv4UDPNatByIpPortOn
-	CfgFlagOffsetIPv4UDPNatByIpOn
-	CfgFlagOffsetIPv4UDPNatByPortOn
-	CfgFlagOffsetIPv4UDPNatAllOff
-	CfgFlagOffsetIPv4UDPNatOptOn
-	CfgFlagOffsetIPv4UDPNatOptWithLocalAddrOn
-	CfgFlagOffsetIPv4UDPNatOptWithLocalPortOn
-	CfgFlagOffsetIPv4AclCheckOn
-	CfgFlagOffsetIPv4TraceHdrOn
-	CfgFlagOffsetIPv4TraceNatOn
-	CfgFlagOffsetIPv4TraceOptOn
-	CfgFlagOffsetIPv4TraceAclOn
-	CfgFlagOffsetIPv4TraceFlowOn
-	CfgFlagOffsetIPv4TraceByIpOn
-	CfgFlagOffsetIPv4TraceByPortOn
+	CfgFlagOffsetDenyAll uint8 = iota
+	CfgFlagOffsetAllowAll
+	CfgFlagOffsetTCPProtoDenyAll
+	CfgFlagOffsetTCPProtoAllowAll
+	CfgFlagOffsetTCPProtoAllowNatEscape
+	CfgFlagOffsetUDPProtoDenyAll
+	CfgFlagOffsetUDPProtoAllowAll
+	CfgFlagOffsetUDPProtoAllowNatEscape
+	CfgFlagOffsetOTHProtoDenyAll
+	CfgFlagOffsetTCPNatByIpPortOn
+	CfgFlagOffsetTCPNatByIpOn
+	CfgFlagOffsetTCPNatAllOff
+	CfgFlagOffsetTCPNatOptOn
+	CfgFlagOffsetTCPNatOptWithLocalAddrOn
+	CfgFlagOffsetTCPNatOptWithLocalPortOn
+	CfgFlagOffsetUDPNatByIpPortOn
+	CfgFlagOffsetUDPNatByIpOn
+	CfgFlagOffsetUDPNatByPortOn
+	CfgFlagOffsetUDPNatAllOff
+	CfgFlagOffsetUDPNatOptOn
+	CfgFlagOffsetUDPNatOptWithLocalAddrOn
+	CfgFlagOffsetUDPNatOptWithLocalPortOn
+	CfgFlagOffsetAclCheckOn
+	CfgFlagOffsetTraceHdrOn
+	CfgFlagOffsetTraceNatOn
+	CfgFlagOffsetTraceOptOn
+	CfgFlagOffsetTraceAclOn
+	CfgFlagOffsetTraceFlowOn
+	CfgFlagOffsetTraceByIpOn
+	CfgFlagOffsetTraceByPortOn
 	CfgFlagMax
 )
 
 var flagNames = [CfgFlagMax]string{
-	"ipv6_proto_deny_all",
-	"ipv4_tcp_proto_deny_all",
-	"ipv4_tcp_proto_allow_all",
-	"ipv4_tcp_proto_allow_nat_escape",
-	"ipv4_udp_proto_deny_all",
-	"ipv4_udp_proto_allow_all",
-	"ipv4_udp_proto_allow_nat_escape",
-	"ipv4_oth_proto_deny_all",
-	"ipv4_tcp_nat_by_ip_port_on",
-	"ipv4_tcp_nat_by_ip_on",
-	"ipv4_tcp_nat_all_off",
-	"ipv4_tcp_nat_opt_on",
-	"ipv4_tcp_nat_opt_with_local_addr_on",
-	"ipv4_tcp_nat_opt_with_local_port_on",
-	"ipv4_udp_nat_by_ip_port_on",
-	"ipv4_udp_nat_by_ip_on",
-	"ipv4_udp_nat_by_port_on",
-	"ipv4_udp_nat_all_off",
-	"ipv4_udp_nat_opt_on",
-	"ipv4_udp_nat_opt_with_local_addr_on",
-	"ipv4_udp_nat_opt_with_local_port_on",
-	"ipv4_acl_check_on",
-	"ipv4_trace_hdr_on",
-	"ipv4_trace_nat_on",
-	"ipv4_trace_opt_on",
-	"ipv4_trace_acl_on",
-	"ipv4_trace_flow_on",
-	"ipv4_trace_by_ip_on",
-	"ipv4_trace_by_port_on",
+	"deny_all",
+	"allow_all",
+	"tcp_proto_deny_all",
+	"tcp_proto_allow_all",
+	"tcp_proto_allow_nat_escape",
+	"udp_proto_deny_all",
+	"udp_proto_allow_all",
+	"udp_proto_allow_nat_escape",
+	"oth_proto_deny_all",
+	"tcp_nat_by_ip_port_on",
+	"tcp_nat_by_ip_on",
+	"tcp_nat_all_off",
+	"tcp_nat_opt_on",
+	"tcp_nat_opt_with_local_addr_on",
+	"tcp_nat_opt_with_local_port_on",
+	"udp_nat_by_ip_port_on",
+	"udp_nat_by_ip_on",
+	"udp_nat_by_port_on",
+	"udp_nat_all_off",
+	"udp_nat_opt_on",
+	"udp_nat_opt_with_local_addr_on",
+	"udp_nat_opt_with_local_port_on",
+	"acl_check_on",
+	"trace_hdr_on",
+	"trace_nat_on",
+	"trace_opt_on",
+	"trace_acl_on",
+	"trace_flow_on",
+	"trace_by_ip_on",
+	"trace_by_port_on",
 }
