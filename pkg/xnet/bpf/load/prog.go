@@ -56,16 +56,30 @@ func InitMeshConfig() {
 	}
 }
 
-func InitE4lbConfig() {
+func InitE4lbConfig(enableE4lbIPv4, enableE4lbIPv6 bool) {
 	if cfgVal, cfgErr := maps.GetXNetCfg(maps.SysE4lb); cfgErr != nil {
 		log.Fatal().Msg(cfgErr.Error())
 	} else {
-		cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPNatAllOff)
-		cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPNatByIpPortOn)
-		cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPProtoAllowNatEscape)
-		cfgVal.IPv4().Set(maps.CfgFlagOffsetUDPProtoAllowAll)
-		cfgVal.IPv4().Clear(maps.CfgFlagOffsetOTHProtoDenyAll)
-		cfgVal.IPv6().Clear(maps.CfgFlagOffsetDenyAll)
+		if enableE4lbIPv4 {
+			cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPNatAllOff)
+			cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPNatByIpPortOn)
+			cfgVal.IPv4().Set(maps.CfgFlagOffsetTCPProtoAllowNatEscape)
+			cfgVal.IPv4().Set(maps.CfgFlagOffsetUDPProtoAllowAll)
+			cfgVal.IPv4().Clear(maps.CfgFlagOffsetOTHProtoDenyAll)
+		} else {
+			cfgVal.IPv4().Clear(maps.CfgFlagOffsetDenyAll)
+		}
+
+		if enableE4lbIPv6 {
+			cfgVal.IPv6().Set(maps.CfgFlagOffsetTCPNatAllOff)
+			cfgVal.IPv6().Set(maps.CfgFlagOffsetTCPNatByIpPortOn)
+			cfgVal.IPv6().Set(maps.CfgFlagOffsetTCPProtoAllowNatEscape)
+			cfgVal.IPv6().Set(maps.CfgFlagOffsetUDPProtoAllowAll)
+			cfgVal.IPv6().Clear(maps.CfgFlagOffsetOTHProtoDenyAll)
+		} else {
+			cfgVal.IPv6().Clear(maps.CfgFlagOffsetDenyAll)
+		}
+
 		if cfgErr = maps.SetXNetCfg(maps.SysE4lb, cfgVal); cfgErr != nil {
 			log.Fatal().Msg(cfgErr.Error())
 		}

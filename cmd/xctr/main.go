@@ -29,8 +29,10 @@ var (
 	fsmVersion   string
 	fsmNamespace string
 
-	enableMesh bool
-	enableE4lb bool
+	enableMesh     bool
+	enableE4lb     bool
+	enableE4lbIPv4 bool
+	enableE4lbIPv6 bool
 
 	filterPortInbound  string
 	filterPortOutbound string
@@ -60,8 +62,10 @@ func init() {
 	flags.StringVar(&fsmVersion, "fsm-version", "", "Version of FSM")
 	flags.StringVar(&fsmNamespace, "fsm-namespace", "", "FSM controller's namespace")
 
-	flags.BoolVar(&enableMesh, "enable-mesh", true, "Enable 4-layer load balance")
-	flags.BoolVar(&enableE4lb, "enable-e4lb", false, "Enable service mesh")
+	flags.BoolVar(&enableMesh, "enable-mesh", true, "Enable service mesh")
+	flags.BoolVar(&enableE4lb, "enable-e4lb", false, "Enable 4-layer load balance")
+	flags.BoolVar(&enableE4lbIPv4, "enable-e4lb-ipv4", true, "Enable 4-layer load balance with ipv4")
+	flags.BoolVar(&enableE4lbIPv6, "enable-e4lb-ipv6", true, "Enable 4-layer load balance with ipv6")
 
 	flags.StringVar(&filterPortInbound, "filter-port-inbound", "inbound", "filter inbound port flag")
 	flags.StringVar(&filterPortOutbound, "filter-port-outbound", "outbound", "filter outbound port flag")
@@ -156,7 +160,7 @@ func main() {
 	kubeController := k8s.NewKubernetesController(informerCollection, msgBroker)
 
 	server := controller.NewServer(ctx, kubeController, msgBroker, stop,
-		enableE4lb, enableMesh,
+		enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh,
 		filterPortInbound, filterPortOutbound,
 		flushTCPConnTrackCrontab, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize,
 		flushUDPConnTrackCrontab, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize)
