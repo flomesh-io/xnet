@@ -35,8 +35,8 @@ type nat struct {
 
 func (c *nat) getKeys() ([]maps.NatKey, error) {
 	var err error
-	natKey := maps.NatKey{V6: 0}
-	if natKey.Daddr[0], err = util.IPv4ToInt(c.sa.addr); err != nil {
+	natKey := maps.NatKey{}
+	if natKey.Daddr[0], natKey.Daddr[1], natKey.Daddr[2], natKey.Daddr[3], natKey.V6, err = util.IPToInt(c.sa.addr); err != nil {
 		return nil, err
 	}
 	natKey.Dport = util.HostToNetShort(c.sa.port)

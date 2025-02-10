@@ -60,7 +60,7 @@ func (a *aclAddCmd) run() error {
 		return errors.New("missing proto: --proto-tcp/--proto-udp")
 	}
 
-	if aclKey.Addr[0], err = util.IPv4ToInt(a.addr); err != nil {
+	if aclKey.Addr[0], aclKey.Addr[1], aclKey.Addr[2], aclKey.Addr[3], _, err = util.IPToInt(a.addr); err != nil {
 		return err
 	}
 

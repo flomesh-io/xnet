@@ -1,5 +1,5 @@
-#ifndef __FSM_SIDECAR_CONFIG_H__
-#define __FSM_SIDECAR_CONFIG_H__
+#ifndef __FSM_XNETWORK_CONFIG_H__
+#define __FSM_XNETWORK_CONFIG_H__
 
 #define FSM_CNI_PASS_PROG_ID (0)
 #define FSM_CNI_DROP_PROG_ID (1)

@@ -13,7 +13,10 @@ type FsmAclOpT struct {
 	Id   uint16
 }
 
-type FsmCfgT struct{ Flags uint64 }
+type FsmCfgT struct {
+	Ipv4 FlagT
+	Ipv6 FlagT
+}
 
 type FsmFlowTOpT struct {
 	Lock    struct{ Val uint32 }

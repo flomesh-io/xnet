@@ -1,5 +1,5 @@
-#ifndef __FSM_SIDECAR_XCODE_H__
-#define __FSM_SIDECAR_XCODE_H__
+#ifndef __FSM_XNETWORK_XCODE_H__
+#define __FSM_XNETWORK_XCODE_H__
 
 #include <linux/if_packet.h>
 #include "bpf_xtypes.h"
@@ -9,14 +9,19 @@
 #define IP_MF 0x2000     /* Flag: "More Fragments"	*/
 #define IP_OFFSET 0x1FFF /* "Fragment Offset" part	*/
 
-INTERNAL(int) ip_fragment(const struct iphdr *iph)
+INTERNAL(int) ipv4_fragment(const struct iphdr *iph)
 {
     return (iph->frag_off & htons(IP_MF | IP_OFFSET)) != 0;
 }
 
-INTERNAL(int) ip_first_fragment(const struct iphdr *iph)
+INTERNAL(int) ipv4_first_fragment(const struct iphdr *iph)
 {
     return (iph->frag_off & htons(IP_OFFSET)) == 0;
+}
+
+static inline int ipv6_multicast(const struct in6_addr *addr)
+{
+    return (addr->s6_addr32[0] & htonl(0xFF000000)) == htonl(0xFF000000);
 }
 
 INTERNAL(int)
@@ -60,21 +65,43 @@ decode_ipv4(decoder_t *decoder, void *skb, xpkt_t *pkt)
     pkt->flow.saddr4 = iph->saddr;
     pkt->flow.daddr4 = iph->daddr;
 
-    if (ip_first_fragment(iph)) {
+    if (ipv4_first_fragment(iph)) {
         pkt->l4_off = XPKT_PTR_SUB(XPKT_PTR_ADD(iph, iphl), decoder->start);
         decoder->data_begin = XPKT_PTR_ADD(iph, iphl);
-        if (ip_fragment(iph)) {
+        if (ipv4_fragment(iph)) {
             pkt->ipv4_id = iph->id;
             pkt->re_flow = 1;
         }
     } else {
-        if (ip_fragment(iph)) {
+        if (ipv4_fragment(iph)) {
             pkt->flow.sport = iph->id;
             pkt->flow.dport = iph->id;
             pkt->ipv4_id = iph->id;
             pkt->ipv4_frag = 1;
         }
     }
+
+    return DECODE_PASS;
+}
+
+INTERNAL(int)
+decode_ipv6(decoder_t *decoder, void *skb, xpkt_t *pkt)
+{
+    struct ipv6hdr *iph = XPKT_PTR(decoder->data_begin);
+
+    if ((void *)(iph + 1) > decoder->data_end) {
+        return DECODE_FAIL;
+    }
+
+    if (ipv6_multicast(&iph->daddr) || ipv6_multicast(&iph->saddr)) {
+        return DECODE_PASS;
+    }
+
+    pkt->flow.proto = iph->nexthdr;
+    memcpy(&pkt->flow.saddr, &iph->saddr, sizeof(iph->saddr));
+    memcpy(&pkt->flow.daddr, &iph->daddr, sizeof(iph->daddr));
+    pkt->l4_off = XPKT_PTR_SUB(XPKT_PTR_ADD(iph, sizeof(*iph)), decoder->start);
+    decoder->data_begin = XPKT_PTR_ADD(iph, sizeof(*iph));
 
     return DECODE_PASS;
 }

@@ -48,7 +48,7 @@ func (a *traceIPAddCmd) run() error {
 	}
 	var err error
 	traceKey := new(maps.TraceIPKey)
-	if traceKey.Addr[0], err = util.IPv4ToInt(a.sa.addr); err != nil {
+	if traceKey.Addr[0], traceKey.Addr[1], traceKey.Addr[2], traceKey.Addr[3], _, err = util.IPToInt(a.sa.addr); err != nil {
 		return err
 	}
 	traceVal := new(maps.TraceIPVal)

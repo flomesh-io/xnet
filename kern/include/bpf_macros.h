@@ -1,5 +1,5 @@
-#ifndef __FSM_SIDECAR_MACROS_H__
-#define __FSM_SIDECAR_MACROS_H__
+#ifndef __FSM_XNETWORK_MACROS_H__
+#define __FSM_XNETWORK_MACROS_H__
 
 #include "bpf_config.h"
 
@@ -19,7 +19,7 @@
 #define XPKT_PTR_ADD(x, len) ((void *)(((__u8 *)((long)x)) + (len)))
 #define XPKT_PTR_SUB(x, y) (((__u8 *)XPKT_PTR(x)) - ((__u8 *)XPKT_PTR(y)))
 
-#ifndef IPV6_SUPPORT
+#ifndef IPV4_SINGLE_STACK
 #define IP_ALEN 4
 #define XADDR_COPY(dst, src) memcpy(dst, src, 16)
 #define XADDR_ZERO(v) memset(v, 0, 16)

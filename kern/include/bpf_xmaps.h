@@ -1,5 +1,5 @@
-#ifndef __FSM_SIDECAR_XMAPS_H__
-#define __FSM_SIDECAR_XMAPS_H__
+#ifndef __FSM_XNETWORK_XMAPS_H__
+#define __FSM_XNETWORK_XMAPS_H__
 
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>

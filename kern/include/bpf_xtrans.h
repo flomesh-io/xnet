@@ -1,5 +1,5 @@
-#ifndef __FSM_SIDECAR_XTRANS_H__
-#define __FSM_SIDECAR_XTRANS_H__
+#ifndef __FSM_XNETWORK_XTRANS_H__
+#define __FSM_XNETWORK_XTRANS_H__
 
 #include "bpf_macros.h"
 #include "bpf_debug.h"

@@ -63,7 +63,7 @@ func GetNatEntry(sysId SysID, natKey *NatKey) (*NatVal, error) {
 
 func (t *NatKey) String() string {
 	return fmt.Sprintf(`{"sys": "%s","daddr": "%s","dport": %d,"proto": "%s","v6": %t,"tc_dir": "%s"}`,
-		_sys_(t.Sys), _ip_(t.Daddr[0]), _port_(t.Dport), _proto_(t.Proto), _bool_(t.V6), _tc_dir_(t.TcDir))
+		_sys_(t.Sys), _ip_(t.Daddr), _port_(t.Dport), _proto_(t.Proto), _bool_(t.V6), _tc_dir_(t.TcDir))
 }
 
 func (t *NatVal) String() string {
@@ -77,21 +77,25 @@ func (t *NatVal) String() string {
 			sb.WriteString(`,`)
 		}
 		sb.WriteString(fmt.Sprintf(`{"rmac": "%s","raddr": "%s","rport": %d,"ofi": %d,"oflags": %d,"omac_set": %t,"omac": "%s","active": %t}`,
-			_mac_(ep.Rmac[:]), _ip_(ep.Raddr[0]), _port_(ep.Rport), ep.Ofi, ep.Oflags, _bool_(ep.OmacSet), _mac_(ep.Omac[:]), _bool_(ep.Active)))
+			_mac_(ep.Rmac[:]), _ip_(ep.Raddr), _port_(ep.Rport), ep.Ofi, ep.Oflags, _bool_(ep.OmacSet), _mac_(ep.Omac[:]), _bool_(ep.Active)))
 	}
 	sb.WriteString(`]}`)
 	return sb.String()
 }
 
 func (t *NatVal) AddEp(raddr net.IP, rport uint16, rmac []uint8, ofi, oflags uint32, omac []uint8, active bool) (bool, error) {
-	ipNb, err := util.IPv4ToInt(raddr)
+	ipNb0, ipNb1, ipNb2, ipNb3, _, err := util.IPToInt(raddr)
 	if err != nil {
 		return false, err
 	}
 	portBe := util.HostToNetShort(rport)
 	if t.EpCnt > 0 {
 		for idx := range t.Eps {
-			if t.Eps[idx].Raddr[0] == ipNb && t.Eps[idx].Rport == portBe {
+			if t.Eps[idx].Raddr[0] == ipNb0 &&
+				t.Eps[idx].Raddr[1] == ipNb1 &&
+				t.Eps[idx].Raddr[2] == ipNb2 &&
+				t.Eps[idx].Raddr[3] == ipNb3 &&
+				t.Eps[idx].Rport == portBe {
 				for n := range t.Eps[idx].Rmac {
 					t.Eps[idx].Rmac[n] = rmac[n]
 				}
@@ -122,7 +126,10 @@ func (t *NatVal) AddEp(raddr net.IP, rport uint16, rmac []uint8, ofi, oflags uin
 		return false, nil
 	}
 
-	t.Eps[t.EpCnt].Raddr[0] = ipNb
+	t.Eps[t.EpCnt].Raddr[0] = ipNb0
+	t.Eps[t.EpCnt].Raddr[1] = ipNb1
+	t.Eps[t.EpCnt].Raddr[2] = ipNb2
+	t.Eps[t.EpCnt].Raddr[3] = ipNb3
 	t.Eps[t.EpCnt].Rport = portBe
 	for n := range t.Eps[t.EpCnt].Rmac {
 		t.Eps[t.EpCnt].Rmac[n] = rmac[n]
@@ -150,7 +157,7 @@ func (t *NatVal) AddEp(raddr net.IP, rport uint16, rmac []uint8, ofi, oflags uin
 }
 
 func (t *NatVal) DelEp(raddr net.IP, rport uint16) error {
-	ipNb, err := util.IPv4ToInt(raddr)
+	ipNb0, ipNb1, ipNb2, ipNb3, _, err := util.IPToInt(raddr)
 	if err != nil {
 		return err
 	}
@@ -164,7 +171,11 @@ func (t *NatVal) DelEp(raddr net.IP, rport uint16) error {
 	lastIdx := int(t.EpCnt - 1)
 
 	for idx := range t.Eps {
-		if t.Eps[idx].Raddr[0] == ipNb && t.Eps[idx].Rport == portBe {
+		if t.Eps[idx].Raddr[0] == ipNb0 &&
+			t.Eps[idx].Raddr[1] == ipNb1 &&
+			t.Eps[idx].Raddr[2] == ipNb2 &&
+			t.Eps[idx].Raddr[3] == ipNb3 &&
+			t.Eps[idx].Rport == portBe {
 			hitIdx = idx
 			break
 		}

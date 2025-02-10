@@ -65,7 +65,7 @@ func ShowTraceIPEntries() {
 
 func (t *TraceIPKey) String() string {
 	return fmt.Sprintf(`{"sys": "%s","addr": "%s"}`,
-		_sys_(t.Sys), _ip_(t.Addr[0]))
+		_sys_(t.Sys), _ip_(t.Addr))
 }
 
 func (t *TraceIPVal) String() string {

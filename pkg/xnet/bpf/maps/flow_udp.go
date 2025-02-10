@@ -49,7 +49,7 @@ func FlushIdleUDPFlowEntries(sysId SysID, idleSeconds, batchSize int) (int, erro
 	var idleOptKeys []OptKey
 	if cfg, err := GetXNetCfg(sysId); err != nil {
 		return 0, nil
-	} else if natOptOn = cfg.IsSet(CfgFlagOffsetIPv4UDPNatOptOn); natOptOn {
+	} else if natOptOn = cfg.IPv4().IsSet(CfgFlagOffsetUDPNatOptOn) || cfg.IPv6().IsSet(CfgFlagOffsetUDPNatOptOn); natOptOn {
 		pinnedFile = fs.GetPinningFile(bpf.FSM_MAP_NAME_UDP_OPT)
 		optMap, mapErr = ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{})
 		if mapErr != nil {
@@ -57,10 +57,10 @@ func FlushIdleUDPFlowEntries(sysId SysID, idleSeconds, batchSize int) (int, erro
 		}
 		defer optMap.Close()
 
-		if cfg.IsSet(CfgFlagOffsetIPv4UDPNatOptWithLocalAddrOn) {
+		if cfg.IPv4().IsSet(CfgFlagOffsetUDPNatOptWithLocalAddrOn) || cfg.IPv6().IsSet(CfgFlagOffsetUDPNatOptWithLocalAddrOn) {
 			optWithLocalAddrOn = true
 		}
-		if cfg.IsSet(CfgFlagOffsetIPv4UDPNatOptWithLocalPortOn) {
+		if cfg.IPv4().IsSet(CfgFlagOffsetUDPNatOptWithLocalPortOn) || cfg.IPv6().IsSet(CfgFlagOffsetUDPNatOptWithLocalPortOn) {
 			optWithLocalPortOn = true
 		}
 	}
@@ -153,7 +153,7 @@ func (t *FlowUDPVal) String() string {
 		_duration_(t.Atime),
 		_nf_(t.Nfs[0]), _nf_(t.Nfs[1]),
 		_mac_(t.Xnat.Xmac[:]), _mac_(t.Xnat.Rmac[:]),
-		_ip_(t.Xnat.Xaddr[0]), _ip_(t.Xnat.Raddr[0]),
+		_ip_(t.Xnat.Xaddr), _ip_(t.Xnat.Raddr),
 		_port_(t.Xnat.Xport), _port_(t.Xnat.Rport),
 		t.Trans.Udp.Conns.Pkts,
 	)

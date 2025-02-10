@@ -35,6 +35,7 @@ make -f Makefile.cli.mk kern-trace
 
 make -f docs/tests/Makefile e4lb-up
 make -f docs/tests/Makefile v1-pipy-demo
+make -f docs/tests/Makefile v2-pipy-demo
 
 make -f Makefile.cli.mk build-bpf build-cli
 make -f docs/tests/Makefile test-e4lb-tcp
