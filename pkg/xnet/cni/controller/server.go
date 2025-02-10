@@ -27,7 +27,10 @@ type server struct {
 	msgBroker      *messaging.Broker
 	stop           chan struct{}
 
-	enableE4lb bool
+	enableE4lb     bool
+	enableE4lbIPv4 bool
+	enableE4lbIPv6 bool
+
 	enableMesh bool
 
 	unixSockPath string
@@ -49,7 +52,7 @@ type server struct {
 // the path this the unix path to listen.
 func NewServer(ctx context.Context,
 	kubeController k8s.Controller, msgBroker *messaging.Broker, stop chan struct{},
-	enableE4lb, enableMesh bool,
+	enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh bool,
 	filterPortInbound, filterPortOutbound string,
 	flushTCPConnTrackCrontab string, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize int,
 	flushUDPConnTrackCrontab string, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize int) Server {
@@ -61,7 +64,10 @@ func NewServer(ctx context.Context,
 		ctx:            ctx,
 		stop:           stop,
 
-		enableE4lb: enableE4lb,
+		enableE4lb:     enableE4lb,
+		enableE4lbIPv4: enableE4lbIPv4,
+		enableE4lbIPv6: enableE4lbIPv6,
+
 		enableMesh: enableMesh,
 
 		filterPortInbound:  filterPortInbound,
@@ -83,7 +89,7 @@ func (s *server) Start() error {
 	if !s.enableE4lb {
 		e4lb.E4lbOff()
 	} else {
-		load.InitE4lbConfig()
+		load.InitE4lbConfig(s.enableE4lbIPv4, s.enableE4lbIPv6)
 		e4lb.E4lbOn()
 	}
 
