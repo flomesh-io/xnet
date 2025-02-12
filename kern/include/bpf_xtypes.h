@@ -3,6 +3,11 @@
 
 #define INTERNAL(type) __attribute__((__always_inline__)) static inline type
 
+enum {
+    BPF_F_EGRESS = (0ULL),
+    // BPF_F_INGRESS = (1ULL << 0),
+};
+
 typedef enum xpkt_sys_e {
     SYS_NOOP = 0,
     SYS_MESH = 1,

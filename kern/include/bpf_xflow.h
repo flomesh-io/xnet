@@ -125,8 +125,8 @@ xpkt_flow_nat_endpoint(skb_t *skb, xpkt_t *pkt, nat_op_t *ops)
 }
 
 INTERNAL(int)
-xpkt_flow_nat(skb_t *skb, xpkt_t *pkt, xnat_t *xnat, __u8 with_addr,
-              __u8 with_port)
+xpkt_flow_nat(skb_t *skb, xpkt_t *pkt, flow_t *flow, flow_op_t *op,
+              xnat_t *xnat, __u8 with_addr, __u8 with_port)
 {
     nat_key_t key;
     nat_op_t *ops;
@@ -165,6 +165,16 @@ xpkt_flow_nat(skb_t *skb, xpkt_t *pkt, xnat_t *xnat, __u8 with_addr,
         xnat->oflags = ep->oflags;
         pkt->ofi = ep->ofi;
         pkt->oflags = ep->oflags;
+        if (pkt->tc_dir == TC_DIR_IGR) {
+            if (pkt->flow.sys == SYS_E4LB) {
+                if (pkt->ifi == pkt->ofi) {
+                    if (pkt->oflags == BPF_F_EGRESS) {
+                        XMAC_COPY(op->xnat.xmac, pkt->dmac);
+                        XADDR_COPY(op->xnat.xaddr, flow->daddr);
+                    }
+                }
+            }
+        }
         return 1;
     }
 
@@ -295,13 +305,13 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
 
     if (pkt->flow.proto == IPPROTO_TCP) {
         if (flags->tcp_nat_by_ip_port_on) {
-            do_nat = xpkt_flow_nat(skb, pkt, &op->xnat, 1, 1);
+            do_nat = xpkt_flow_nat(skb, pkt, flow, op, &op->xnat, 1, 1);
         }
         if (!do_nat && flags->tcp_nat_by_ip_on) {
-            do_nat = xpkt_flow_nat(skb, pkt, &op->xnat, 1, 0);
+            do_nat = xpkt_flow_nat(skb, pkt, flow, op, &op->xnat, 1, 0);
         }
         if (!do_nat && !flags->tcp_nat_all_off) {
-            do_nat = xpkt_flow_nat(skb, pkt, &op->xnat, 0, 0);
+            do_nat = xpkt_flow_nat(skb, pkt, flow, op, &op->xnat, 0, 0);
         }
 
         if (!do_nat) {
@@ -319,16 +329,16 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
         }
     } else if (pkt->flow.proto == IPPROTO_UDP) {
         if (flags->udp_nat_by_ip_port_on) {
-            do_nat = xpkt_flow_nat(skb, pkt, &op->xnat, 1, 1);
+            do_nat = xpkt_flow_nat(skb, pkt, flow, op, &op->xnat, 1, 1);
         }
         if (!do_nat && flags->udp_nat_by_ip_on) {
-            do_nat = xpkt_flow_nat(skb, pkt, &op->xnat, 1, 0);
+            do_nat = xpkt_flow_nat(skb, pkt, flow, op, &op->xnat, 1, 0);
         }
         if (!do_nat && flags->udp_nat_by_port_on) {
-            do_nat = xpkt_flow_nat(skb, pkt, &op->xnat, 0, 1);
+            do_nat = xpkt_flow_nat(skb, pkt, flow, op, &op->xnat, 0, 1);
         }
         if (!do_nat && !flags->udp_nat_all_off) {
-            do_nat = xpkt_flow_nat(skb, pkt, &op->xnat, 0, 0);
+            do_nat = xpkt_flow_nat(skb, pkt, flow, op, &op->xnat, 0, 0);
         }
 
         if (!do_nat) {
