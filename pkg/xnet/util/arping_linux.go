@@ -143,7 +143,7 @@ func (s *LinuxSocket) deinitialize() error {
 	return syscall.Close(s.sock)
 }
 
-// PingOverIface sends an arp ping over interface 'iface' to 'dstIP'
+// ARPing sends an arp ping over interface 'iface' to 'dstIP'
 func ARPing(srcIP, dstIP net.IP, iface net.Interface) (net.HardwareAddr, error) {
 	srcMac := iface.HardwareAddr
 
