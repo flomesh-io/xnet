@@ -77,4 +77,8 @@
 #define NULL ((void *)0)
 #endif
 
+#ifndef IFNAMSIZ
+#define IFNAMSIZ 16
+#endif
+
 #endif
