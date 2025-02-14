@@ -46,6 +46,7 @@ func (s *server) CmdAdd(args *skel.CmdArgs) (err error) {
 	log.Debug().Msgf("CmdAdd %s/%s", pod, namespace)
 
 	nsPath := strings.Replace(args.Netns, volume.SysRun.HostPath, volume.SysRun.MountPath, 1)
+	nsPath = strings.Replace(nsPath, volume.SysProc.HostPath, volume.SysProc.MountPath, 1)
 	netNS, err := ns.GetNS(nsPath)
 	if err != nil {
 		log.Error().Msgf("get ns %s error", args.Netns)

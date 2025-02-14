@@ -48,17 +48,13 @@ func (a *netnsExecCmd) run(cmd string) error {
 		return err
 	}
 	for _, fi := range rd {
-		if fi.IsDir() {
-			continue
-		}
-		inode := fmt.Sprintf(`%s/%s`, a.runNetnsDir, fi.Name())
-		namespace, nsErr := ns.GetNS(inode)
+		nsName, inode := ns.GetInode(fi, a.runNetnsDir)
+		netNS, nsErr := ns.GetNS(inode)
 		if nsErr != nil {
-			fmt.Println(nsErr.Error())
 			continue
 		}
-		if nsErr = namespace.Do(func(_ ns.NetNS) error {
-			fmt.Printf("netns: %s exec: %s\n", fi.Name(), cmd)
+		_ = netNS.Do(func(_ ns.NetNS) error {
+			fmt.Printf("netns: %s exec: %s\n", nsName, cmd)
 			args := strings.Split(cmd, " ")
 			ex := exec.New()
 			command := ex.Command(args[0], args[0:]...)
@@ -68,9 +64,7 @@ func (a *netnsExecCmd) run(cmd string) error {
 			}
 			fmt.Println(string(out))
 			return nil
-		}); nsErr != nil {
-			fmt.Println(" ", nsErr.Error())
-		}
+		})
 	}
 	return nil
 }

@@ -11,6 +11,11 @@ var (
 		MountPath: "/host/sys/fs",
 	}
 
+	SysProc = HostMount{
+		HostPath:  "/proc",
+		MountPath: "/host/proc",
+	}
+
 	SysRun = HostMount{
 		HostPath:  "/var/run",
 		MountPath: "/host/run",

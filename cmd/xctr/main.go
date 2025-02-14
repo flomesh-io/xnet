@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"path"
 
@@ -50,6 +51,11 @@ var (
 	nodePathSysFs   string
 	nodePathSysRun  string
 
+	cniIPv4BridgeName string
+	cniIPv4BridgeMac  string
+	cniIPv6BridgeName string
+	cniIPv6BridgeMac  string
+
 	rtScheme = runtime.NewScheme()
 
 	flags = pflag.NewFlagSet(`fsm-xnet`, pflag.ExitOnError)
@@ -82,6 +88,11 @@ func init() {
 	flags.StringVar(&nodePathCniNetd, "node-path-cni-netd", "", "cni net-d node path")
 	flags.StringVar(&nodePathSysFs, "node-path-sys-fs", "", "sys fs node path")
 	flags.StringVar(&nodePathSysRun, "node-path-sys-run", "", "sys run node path")
+
+	flags.StringVar(&cniIPv4BridgeName, "cni-ipv4-bridge-name", "", "cni ipv4 bridge name")
+	flags.StringVar(&cniIPv4BridgeMac, "cni-ipv4-bridge-mac", "", "cni ipv4 bridge mac")
+	flags.StringVar(&cniIPv6BridgeName, "cni-ipv6-bridge-name", "", "cni ipv6 bridge name")
+	flags.StringVar(&cniIPv6BridgeMac, "cni-ipv6-bridge-mac", "", "cni ipv6 bridge mac")
 
 	_ = scheme.AddToScheme(rtScheme)
 }
@@ -159,8 +170,24 @@ func main() {
 
 	kubeController := k8s.NewKubernetesController(informerCollection, msgBroker)
 
+	cniBridges := make([]net.Interface, 0)
+	if len(cniIPv4BridgeName) > 0 {
+		cni4Br := net.Interface{Name: cniIPv4BridgeName}
+		if len(cniIPv4BridgeMac) > 0 {
+			cni4Br.HardwareAddr, _ = net.ParseMAC(cniIPv4BridgeMac)
+		}
+		cniBridges = append(cniBridges, cni4Br)
+	}
+	if len(cniIPv6BridgeName) > 0 {
+		cni6Br := net.Interface{Name: cniIPv6BridgeName}
+		if len(cniIPv6BridgeMac) > 0 {
+			cni6Br.HardwareAddr, _ = net.ParseMAC(cniIPv6BridgeMac)
+		}
+		cniBridges = append(cniBridges, cni6Br)
+	}
+
 	server := controller.NewServer(ctx, kubeController, msgBroker, stop,
-		enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh,
+		enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh, cniBridges,
 		filterPortInbound, filterPortOutbound,
 		flushTCPConnTrackCrontab, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize,
 		flushUDPConnTrackCrontab, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize)

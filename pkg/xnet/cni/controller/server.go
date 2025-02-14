@@ -46,13 +46,15 @@ type server struct {
 	flushUDPConnTrackCrontab     string
 	flushUDPConnTrackIdleSeconds int
 	flushUDPConnTrackBatchSize   int
+
+	cniBridges []net.Interface
 }
 
 // NewServer returns a new CNI Server.
 // the path this the unix path to listen.
 func NewServer(ctx context.Context,
 	kubeController k8s.Controller, msgBroker *messaging.Broker, stop chan struct{},
-	enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh bool,
+	enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh bool, cniBridges []net.Interface,
 	filterPortInbound, filterPortOutbound string,
 	flushTCPConnTrackCrontab string, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize int,
 	flushUDPConnTrackCrontab string, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize int) Server {
@@ -80,6 +82,8 @@ func NewServer(ctx context.Context,
 		flushUDPConnTrackCrontab:     flushUDPConnTrackCrontab,
 		flushUDPConnTrackIdleSeconds: flushUDPConnTrackIdleSeconds,
 		flushUDPConnTrackBatchSize:   flushUDPConnTrackBatchSize,
+
+		cniBridges: cniBridges,
 	}
 }
 

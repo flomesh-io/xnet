@@ -85,35 +85,47 @@ func (s *server) configMeshPolicies() {
 }
 
 func (s *server) configMeshAclPolicies() {
-	ifi, brv4Addrs, hwAddr, err := s.getBridgeAddrs(bridgeDev)
-	if err != nil {
-		log.Fatal().Err(err).Msg(`invalid bridge eth: cni0`)
-	} else {
-		brKey := new(maps.IFaceKey)
-		brKey.Len = uint8(len(bridgeDev))
-		copy(brKey.Name[0:brKey.Len], bridgeDev)
-		brVal := new(maps.IFaceVal)
-		brVal.Ifi = uint32(ifi)
-		copy(brVal.Mac[:], hwAddr[:])
-		if len(brv4Addrs) > 0 {
-			brVal.Addr[0], _ = util.IPv4ToInt(brv4Addrs[0])
-		}
-		if err := maps.AddIFaceEntry(brKey, brVal); err != nil {
-			log.Error().Err(err).Msgf(`failed to add iface: %s`, brKey.String())
-		}
+	for _, br := range s.cniBridges {
+		ifi, brAddrs, hwAddr, err := s.getBridgeAddrs(br.Name)
+		if err != nil {
+			log.Fatal().Err(err).Msgf(`invalid bridge eth: %s`, br.Name)
+		} else {
+			brKey := new(maps.IFaceKey)
+			brKey.Len = uint8(len(br.Name))
+			copy(brKey.Name[0:brKey.Len], br.Name)
+			brVal := new(maps.IFaceVal)
+			brVal.Ifi = uint32(ifi)
+			if len(br.HardwareAddr) > 0 {
+				copy(brVal.Mac[:], br.HardwareAddr[:])
+			} else {
+				copy(brVal.Mac[:], hwAddr[:])
+			}
+			for _, brAddr := range brAddrs {
+				if brVal.Addr[0], brVal.Addr[1], brVal.Addr[2], brVal.Addr[3], _, err = util.IPToInt(brAddr); err == nil {
+					break
+				} else {
+					continue
+				}
+			}
+			if err := maps.AddIFaceEntry(brKey, brVal); err != nil {
+				log.Fatal().Err(err).Msgf(`failed to add iface: %s`, brKey.String())
+			}
 
-		for _, addrv4 := range brv4Addrs {
-			aclKey := new(maps.AclKey)
-			aclKey.Addr[0], _ = util.IPv4ToInt(addrv4)
+			for _, brAddr := range brAddrs {
+				aclKey := new(maps.AclKey)
+				if aclKey.Addr[0], aclKey.Addr[1], aclKey.Addr[2], aclKey.Addr[3], _, err = util.IPToInt(brAddr); err != nil {
+					continue
+				}
 
-			aclVal := new(maps.AclVal)
-			aclVal.Flag = bridgeAclFlag
-			aclVal.Id = bridgeAclId
-			aclKey.Port = util.HostToNetShort(0)
-			aclVal.Acl = uint8(maps.ACL_TRUSTED)
-			aclKey.Proto = uint8(maps.IPPROTO_TCP)
-			if err := maps.AddAclEntry(maps.SysMesh, aclKey, aclVal); err != nil {
-				log.Error().Err(err).Msgf(`failed to add acl: %s`, aclKey.String())
+				aclVal := new(maps.AclVal)
+				aclVal.Flag = bridgeAclFlag
+				aclVal.Id = bridgeAclId
+				aclKey.Port = util.HostToNetShort(0)
+				aclVal.Acl = uint8(maps.ACL_TRUSTED)
+				aclKey.Proto = uint8(maps.IPPROTO_TCP)
+				if err := maps.AddAclEntry(maps.SysMesh, aclKey, aclVal); err != nil {
+					log.Fatal().Err(err).Msgf(`failed to add acl: %s`, aclKey.String())
+				}
 			}
 		}
 	}
@@ -143,7 +155,7 @@ func (s *server) configMeshNatPolicies() {
 
 		podMac, found := s.findHwAddrByPodIP(pod.Status.PodIP)
 		if !found {
-			log.Error().Msgf(`invalid sidecar's mac addr: %s'`, pod.Status.PodIP)
+			log.Error().Msgf(`fail to get sidecar[%s]'s mac addr'`, pod.Status.PodIP)
 			continue
 		}
 

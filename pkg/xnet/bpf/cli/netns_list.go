@@ -55,21 +55,14 @@ func (a *netnsListCmd) run() error {
 		return err
 	}
 	for _, fi := range rd {
-		if fi.IsDir() {
-			continue
-		}
-		inode := fmt.Sprintf(`%s/%s`, a.runNetnsDir, fi.Name())
+		nsName, inode := ns.GetInode(fi, a.runNetnsDir)
 		netNS, nsErr := ns.GetNS(inode)
 		if nsErr != nil {
-			fmt.Println(nsErr.Error())
 			continue
 		}
-		if nsErr = netNS.Do(func(_ ns.NetNS) error {
-			fmt.Print("netns: ", fi.Name())
-			fmt.Print(" dev: ", a.dev)
-			if iface, ifaceErr := net.InterfaceByName(a.dev); ifaceErr != nil {
-				return ifaceErr
-			} else {
+		_ = netNS.Do(func(_ ns.NetNS) error {
+			if iface, ifaceErr := net.InterfaceByName(a.dev); ifaceErr == nil {
+				fmt.Printf("netns: %-18s dev: %-16s", nsName, a.dev)
 				fmt.Printf(" hwAddr:[ %v ]", iface.HardwareAddr.String())
 				if addrs, e := iface.Addrs(); e != nil {
 					return e
@@ -107,9 +100,7 @@ func (a *netnsListCmd) run() error {
 				fmt.Print("\n")
 			}
 			return nil
-		}); nsErr != nil {
-			fmt.Println(" ", nsErr.Error())
-		}
+		})
 	}
 	return nil
 }
