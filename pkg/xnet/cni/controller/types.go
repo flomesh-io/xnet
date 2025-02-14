@@ -7,8 +7,6 @@ var (
 )
 
 const (
-	bridgeDev = `cni0`
-
 	sidecarAclId   = uint16('g'<<8 | 'w')
 	sidecarAclFlag = uint8('f')
 

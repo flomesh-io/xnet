@@ -12,12 +12,9 @@ func (s *server) getBridgeAddrs(br string) (int, []net.IP, net.HardwareAddr, err
 		var brAddrs []net.IP
 		for _, addr := range addrs {
 			addrStr := addr.String()
-			if strings.Index(addrStr, `:`) > 0 {
-				continue
-			}
 			addrStr = addrStr[0:strings.Index(addrStr, `/`)]
 			brAddr := net.ParseIP(addrStr)
-			if brAddr.To4() == nil || brAddr.IsUnspecified() || brAddr.IsMulticast() {
+			if (brAddr.To4() == nil && brAddr.To16() == nil) || brAddr.IsUnspecified() || brAddr.IsMulticast() {
 				continue
 			}
 			brAddrs = append(brAddrs, brAddr)

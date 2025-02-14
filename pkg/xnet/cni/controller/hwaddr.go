@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -11,46 +10,46 @@ import (
 )
 
 func (s *server) findHwAddrByPodIP(podIP string) (net.HardwareAddr, bool) {
-	rd, err := os.ReadDir(volume.Netns.MountPath)
-	if err != nil {
-		log.Error().Err(err).Msg(volume.Netns.MountPath)
-		return nil, false
-	}
-
 	var hwAddr net.HardwareAddr
-	for _, fi := range rd {
-		if fi.IsDir() {
+	netnsDirs := []string{volume.Netns.MountPath, volume.SysProc.MountPath}
+	for _, netnsDir := range netnsDirs {
+		rd, err := os.ReadDir(netnsDir)
+		if err != nil {
+			log.Debug().Err(err).Msg(netnsDir)
 			continue
 		}
-		inode := fmt.Sprintf(`%s/%s`, volume.Netns.MountPath, fi.Name())
-		netNS, nsErr := ns.GetNS(inode)
-		if nsErr != nil {
-			log.Error().Err(nsErr).Msg(inode)
-			continue
-		}
-
-		if nsErr = netNS.Do(func(_ ns.NetNS) error {
-			ifaces, ifaceErr := net.Interfaces()
-			if ifaceErr != nil {
-				return ifaceErr
+		for _, fi := range rd {
+			nsName, inode := ns.GetInode(fi, netnsDir)
+			netNS, nsErr := ns.GetNS(inode)
+			if nsErr != nil {
+				log.Debug().Err(nsErr).Msg(nsName)
+				continue
 			}
-			for _, iface := range ifaces {
-				if (iface.Flags&net.FlagLoopback) == 0 && (iface.Flags&net.FlagUp) != 0 {
-					if addrs, addrErr := iface.Addrs(); addrErr == nil {
-						for _, addr := range addrs {
-							addrStr := addr.String()
-							addrStr = addrStr[0:strings.Index(addrStr, `/`)]
-							if strings.EqualFold(addrStr, podIP) {
-								hwAddr = iface.HardwareAddr
-								return nil
+
+			if nsErr = netNS.Do(func(_ ns.NetNS) error {
+				ifaces, ifaceErr := net.Interfaces()
+				if ifaceErr != nil {
+					log.Debug().Err(ifaceErr).Msg(nsName)
+					return nil
+				}
+				for _, iface := range ifaces {
+					if (iface.Flags&net.FlagLoopback) == 0 && (iface.Flags&net.FlagUp) != 0 {
+						if addrs, addrErr := iface.Addrs(); addrErr == nil {
+							for _, addr := range addrs {
+								addrStr := addr.String()
+								addrStr = addrStr[0:strings.Index(addrStr, `/`)]
+								if strings.EqualFold(addrStr, podIP) {
+									hwAddr = iface.HardwareAddr
+									return nil
+								}
 							}
 						}
 					}
 				}
+				return nil
+			}); nsErr != nil {
+				log.Debug().Err(nsErr).Msg(nsName)
 			}
-			return nil
-		}); nsErr != nil {
-			log.Error().Err(nsErr).Msg(inode)
 		}
 	}
 	return hwAddr, hwAddr != nil
