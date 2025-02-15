@@ -85,6 +85,7 @@ type FsmIfInfoT struct {
 	Ifi  uint32
 	Addr [4]uint32
 	Mac  [6]uint8
+	Xmac [6]uint8
 }
 
 type FsmIfNameT struct {

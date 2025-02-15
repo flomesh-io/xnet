@@ -100,6 +100,7 @@ func (s *server) configMeshAclPolicies() {
 			} else {
 				copy(brVal.Mac[:], hwAddr[:])
 			}
+			copy(brVal.Xmac[:], hwAddr[:])
 			for _, brAddr := range brAddrs {
 				if brVal.Addr[0], brVal.Addr[1], brVal.Addr[2], brVal.Addr[3], _, err = util.IPToInt(brAddr); err == nil {
 					break

@@ -95,6 +95,6 @@ func (t *IFaceKey) String() string {
 }
 
 func (t *IFaceVal) String() string {
-	return fmt.Sprintf(`{"ifi": "%d","addr": "%s","mac": "%s"}`,
-		t.Ifi, _ip_(t.Addr), _mac_(t.Mac[:]))
+	return fmt.Sprintf(`{"ifi": "%d","addr": "%s","mac": "%s","xmac": "%s"}`,
+		t.Ifi, _ip_(t.Addr), _mac_(t.Mac[:]), _mac_(t.Xmac[:]))
 }
