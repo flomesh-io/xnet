@@ -308,5 +308,6 @@ typedef struct xpkt_if_info_t {
     __u32 ifi;
     __u32 addr[IP_ALEN];
     __u8 mac[ETH_ALEN];
+    __u8 xmac[ETH_ALEN];
 } __attribute__((packed)) if_info_t;
 #endif
