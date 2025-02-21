@@ -2,7 +2,6 @@ package maps
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 
@@ -43,7 +42,7 @@ func InitProgEntries() error {
 		defer pinnedProg.Close()
 
 		progFD := pinnedProg.FD()
-		if err := progMap.Update(unsafe.Pointer(&prog.progKey), unsafe.Pointer(&progFD), ebpf.UpdateAny); err != nil {
+		if err := progMap.Update(prog.progKey, int32(progFD), ebpf.UpdateAny); err != nil {
 			return err
 		}
 	}
@@ -65,7 +64,7 @@ func ShowProgEntries() {
 	it := progMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(&progKey), unsafe.Pointer(&progFD)) {
+	for it.Next(&progKey, &progFD) {
 		if first {
 			first = false
 		} else {

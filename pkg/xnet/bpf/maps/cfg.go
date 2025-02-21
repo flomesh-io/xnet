@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 
@@ -18,7 +17,7 @@ func GetXNetCfg(sysId SysID) (*CfgVal, error) {
 	if cfgMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer cfgMap.Close()
 		cfgKey := CfgKey(sysId)
-		err = cfgMap.Lookup(unsafe.Pointer(&cfgKey), unsafe.Pointer(cfgVal))
+		err = cfgMap.Lookup(&cfgKey, cfgVal)
 		return cfgVal, err
 	} else {
 		return nil, err
@@ -30,7 +29,7 @@ func SetXNetCfg(sysId SysID, cfgVal *CfgVal) error {
 	if cfgMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer cfgMap.Close()
 		cfgKey := CfgKey(sysId)
-		return cfgMap.Update(unsafe.Pointer(&cfgKey), unsafe.Pointer(cfgVal), ebpf.UpdateAny)
+		return cfgMap.Update(&cfgKey, cfgVal, ebpf.UpdateAny)
 	} else {
 		return err
 	}
@@ -49,7 +48,7 @@ func ShowCfgEntries() {
 	it := cfgMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(cfgKey), unsafe.Pointer(cfgVal)) {
+	for it.Next(cfgKey, cfgVal) {
 		if first {
 			first = false
 		} else {
@@ -63,24 +62,24 @@ func ShowCfgEntries() {
 
 func (t *CfgVal) String() string {
 	var sb strings.Builder
-	sb.WriteString(`{"flags":{`)
-	sb.WriteString(fmt.Sprintf(`"IPv4":{"mask":"%064s",`, strconv.FormatUint(t.Ipv4.Flags, 2)))
+	_write_(&sb, `{"flags":{`)
+	_write_(&sb, fmt.Sprintf(`"IPv4":{"mask":"%064s",`, strconv.FormatUint(t.Ipv4.Flags, 2)))
 	for flag, name := range flagNames {
 		if flag > 0 {
-			sb.WriteString(`,`)
+			_write_(&sb, `,`)
 		}
-		sb.WriteString(fmt.Sprintf(`"%s": %t`, name, _bool_(t.IPv4().Get(uint8(flag)))))
+		_write_(&sb, fmt.Sprintf(`"%s": %t`, name, _bool_(t.IPv4().Get(uint8(flag)))))
 	}
-	sb.WriteString(`},`)
-	sb.WriteString(fmt.Sprintf(`"IPv6":{"mask":"%064s",`, strconv.FormatUint(t.Ipv6.Flags, 2)))
+	_write_(&sb, `},`)
+	_write_(&sb, fmt.Sprintf(`"IPv6":{"mask":"%064s",`, strconv.FormatUint(t.Ipv6.Flags, 2)))
 	for flag, name := range flagNames {
 		if flag > 0 {
-			sb.WriteString(`,`)
+			_write_(&sb, `,`)
 		}
-		sb.WriteString(fmt.Sprintf(`"%s": %t`, name, _bool_(t.IPv6().Get(uint8(flag)))))
+		_write_(&sb, fmt.Sprintf(`"%s": %t`, name, _bool_(t.IPv6().Get(uint8(flag)))))
 	}
-	sb.WriteString(`}`)
-	sb.WriteString(`}}`)
+	_write_(&sb, `}`)
+	_write_(&sb, `}}`)
 	return sb.String()
 }
 

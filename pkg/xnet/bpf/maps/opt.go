@@ -3,7 +3,6 @@ package maps
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
@@ -40,7 +39,7 @@ func addOptEntry(emap string, optKey *OptKey, optVal *OptVal) error {
 	pinnedFile := fs.GetPinningFile(emap)
 	if optMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer optMap.Close()
-		return optMap.Update(unsafe.Pointer(optKey), unsafe.Pointer(optVal), ebpf.UpdateAny)
+		return optMap.Update(optKey, optVal, ebpf.UpdateAny)
 	} else {
 		return err
 	}
@@ -54,7 +53,7 @@ func delOptEntry(emap string, optKey *OptKey) error {
 	pinnedFile := fs.GetPinningFile(emap)
 	if optMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer optMap.Close()
-		err = optMap.Delete(unsafe.Pointer(optKey))
+		err = optMap.Delete(optKey)
 		if errors.Is(err, unix.ENOENT) {
 			return nil
 		}
@@ -77,7 +76,7 @@ func showOptEntries(emap string) {
 	it := optMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(optKey), unsafe.Pointer(optVal)) {
+	for it.Next(optKey, optVal) {
 		if first {
 			first = false
 		} else {

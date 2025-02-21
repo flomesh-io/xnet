@@ -3,7 +3,6 @@ package fs
 import (
 	"os"
 	"path"
-	"unsafe"
 
 	"github.com/cilium/ebpf/rlimit"
 
@@ -12,16 +11,17 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/volume"
 )
 
+const (
+	fsMagic = int64(0xCAFE4A11)
+)
+
 var (
 	BPFFSPath = `/sys/fs/bpf`
 
-	fsMagic int32
-	log     = logger.New("fsm-xnet-bpf-fs")
+	log = logger.New("fsm-xnet-bpf-fs")
 )
 
 func init() {
-	magic := uint32(0xCAFE4A11)
-	fsMagic = *(*int32)(unsafe.Pointer(&magic))
 	if exists := util.Exists(volume.Sysfs.MountPath); exists {
 		BPFFSPath = path.Join(volume.Sysfs.MountPath, `bpf`)
 	}

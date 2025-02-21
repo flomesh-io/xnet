@@ -3,7 +3,6 @@ package maps
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
@@ -17,7 +16,7 @@ func AddAclEntry(sysId SysID, aclKey *AclKey, aclVal *AclVal) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_ACL)
 	if aclMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer aclMap.Close()
-		return aclMap.Update(unsafe.Pointer(aclKey), unsafe.Pointer(aclVal), ebpf.UpdateAny)
+		return aclMap.Update(aclKey, aclVal, ebpf.UpdateAny)
 	} else {
 		return err
 	}
@@ -28,7 +27,7 @@ func DelAclEntry(sysId SysID, aclKey *AclKey) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_ACL)
 	if aclMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer aclMap.Close()
-		err = aclMap.Delete(unsafe.Pointer(aclKey))
+		err = aclMap.Delete(aclKey)
 		if errors.Is(err, unix.ENOENT) {
 			return nil
 		}
@@ -49,7 +48,7 @@ func GetAclEntries() map[AclKey]AclVal {
 	aclKey := new(AclKey)
 	aclVal := new(AclVal)
 	it := aclMap.Iterate()
-	for it.Next(unsafe.Pointer(aclKey), unsafe.Pointer(aclVal)) {
+	for it.Next(aclKey, aclVal) {
 		items[*aclKey] = *aclVal
 	}
 	return items
@@ -67,7 +66,7 @@ func ShowAclEntries() {
 	it := aclMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(aclKey), unsafe.Pointer(aclVal)) {
+	for it.Next(aclKey, aclVal) {
 		if first {
 			first = false
 		} else {

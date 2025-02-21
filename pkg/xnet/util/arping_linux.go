@@ -48,15 +48,15 @@ func newArpRequest(
 
 func (datagram arpDatagram) Marshal() []byte {
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.BigEndian, datagram.htype)
-	binary.Write(buf, binary.BigEndian, datagram.ptype)
-	binary.Write(buf, binary.BigEndian, datagram.hlen)
-	binary.Write(buf, binary.BigEndian, datagram.plen)
-	binary.Write(buf, binary.BigEndian, datagram.oper)
-	buf.Write(datagram.sha)
-	buf.Write(datagram.spa)
-	buf.Write(datagram.tha)
-	buf.Write(datagram.tpa)
+	_ = binary.Write(buf, binary.BigEndian, datagram.htype)
+	_ = binary.Write(buf, binary.BigEndian, datagram.ptype)
+	_ = binary.Write(buf, binary.BigEndian, datagram.hlen)
+	_ = binary.Write(buf, binary.BigEndian, datagram.plen)
+	_ = binary.Write(buf, binary.BigEndian, datagram.oper)
+	_, _ = buf.Write(datagram.sha)
+	_, _ = buf.Write(datagram.spa)
+	_, _ = buf.Write(datagram.tha)
+	_, _ = buf.Write(datagram.tpa)
 
 	return buf.Bytes()
 }
@@ -87,11 +87,12 @@ func parseArpDatagram(buffer []byte) arpDatagram {
 	var datagram arpDatagram
 
 	b := bytes.NewBuffer(buffer)
-	binary.Read(b, binary.BigEndian, &datagram.htype)
-	binary.Read(b, binary.BigEndian, &datagram.ptype)
-	binary.Read(b, binary.BigEndian, &datagram.hlen)
-	binary.Read(b, binary.BigEndian, &datagram.plen)
-	binary.Read(b, binary.BigEndian, &datagram.oper)
+
+	_ = binary.Read(b, binary.BigEndian, &datagram.htype)
+	_ = binary.Read(b, binary.BigEndian, &datagram.ptype)
+	_ = binary.Read(b, binary.BigEndian, &datagram.hlen)
+	_ = binary.Read(b, binary.BigEndian, &datagram.plen)
+	_ = binary.Read(b, binary.BigEndian, &datagram.oper)
 
 	haLen := int(datagram.hlen)
 	paLen := int(datagram.plen)
@@ -126,7 +127,7 @@ func (s *LinuxSocket) receive() (arpDatagram, time.Time, error) {
 	buffer := make([]byte, 128)
 	socketTimeout := timeout.Nanoseconds() * 2
 	t := syscall.NsecToTimeval(socketTimeout)
-	syscall.SetsockoptTimeval(s.sock, syscall.SOL_SOCKET, syscall.SO_RCVTIMEO, &t)
+	_ = syscall.SetsockoptTimeval(s.sock, syscall.SOL_SOCKET, syscall.SO_RCVTIMEO, &t)
 	n, _, err := syscall.Recvfrom(s.sock, buffer, 0)
 	if err != nil {
 		return arpDatagram{}, time.Now(), err
@@ -188,7 +189,7 @@ func ARPing(srcIP, dstIP net.IP, iface net.Interface) (net.HardwareAddr, error) 
 	case pingResult := <-pingResultChan:
 		return pingResult.mac, pingResult.err
 	case <-time.After(timeout):
-		sock.deinitialize()
+		_ = sock.deinitialize()
 		return nil, errors.New("arping timeout")
 	}
 }

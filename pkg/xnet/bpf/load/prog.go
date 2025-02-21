@@ -1,7 +1,9 @@
 package load
 
 import (
+	"context"
 	"os/exec"
+	"time"
 
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
@@ -25,7 +27,10 @@ func ProgLoadAll() {
 		`pinmaps`,
 		pinningDir,
 	}
-	cmd := exec.Command(bpftoolCmd, args...) // nolint gosec
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bpftoolCmd, args...) // nolint gosec
 	output, err := cmd.Output()
 	if err != nil {
 		log.Debug().Msg(err.Error())

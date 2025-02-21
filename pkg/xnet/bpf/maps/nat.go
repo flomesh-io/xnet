@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"github.com/pkg/errors"
@@ -21,9 +20,9 @@ func AddNatEntry(sysId SysID, natKey *NatKey, natVal *NatVal) error {
 	if natMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer natMap.Close()
 		if natVal.EpCnt > 0 {
-			return natMap.Update(unsafe.Pointer(natKey), unsafe.Pointer(natVal), ebpf.UpdateAny)
+			return natMap.Update(natKey, natVal, ebpf.UpdateAny)
 		}
-		err = natMap.Delete(unsafe.Pointer(natKey))
+		err = natMap.Delete(natKey)
 		if errors.Is(err, unix.ENOENT) {
 			return nil
 		}
@@ -38,7 +37,7 @@ func DelNatEntry(sysId SysID, natKey *NatKey) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_NAT)
 	if natMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer natMap.Close()
-		err = natMap.Delete(unsafe.Pointer(natKey))
+		err = natMap.Delete(natKey)
 		if errors.Is(err, unix.ENOENT) {
 			return nil
 		}
@@ -54,7 +53,7 @@ func GetNatEntry(sysId SysID, natKey *NatKey) (*NatVal, error) {
 	if natMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer natMap.Close()
 		natVal := new(NatVal)
-		err = natMap.Lookup(unsafe.Pointer(natKey), unsafe.Pointer(natVal))
+		err = natMap.Lookup(natKey, natVal)
 		return natVal, err
 	} else {
 		return nil, err
@@ -68,18 +67,18 @@ func (t *NatKey) String() string {
 
 func (t *NatVal) String() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf(`{"ep_sel": %d,"ep_cnt": %d,"eps": [`, t.EpSel, t.EpCnt))
+	_write_(&sb, fmt.Sprintf(`{"ep_sel": %d,"ep_cnt": %d,"eps": [`, t.EpSel, t.EpCnt))
 	for idx, ep := range t.Eps {
 		if idx >= int(t.EpCnt) {
 			break
 		}
 		if idx > 0 {
-			sb.WriteString(`,`)
+			_write_(&sb, `,`)
 		}
-		sb.WriteString(fmt.Sprintf(`{"rmac": "%s","raddr": "%s","rport": %d,"ofi": %d,"oflags": %d,"omac_set": %t,"omac": "%s","active": %t}`,
+		_write_(&sb, fmt.Sprintf(`{"rmac": "%s","raddr": "%s","rport": %d,"ofi": %d,"oflags": %d,"omac_set": %t,"omac": "%s","active": %t}`,
 			_mac_(ep.Rmac[:]), _ip_(ep.Raddr), _port_(ep.Rport), ep.Ofi, ep.Oflags, _bool_(ep.OmacSet), _mac_(ep.Omac[:]), _bool_(ep.Active)))
 	}
-	sb.WriteString(`]}`)
+	_write_(&sb, `]}`)
 	return sb.String()
 }
 
@@ -217,7 +216,7 @@ func ShowNatEntries() {
 	it := natMap.Iterate()
 	first := true
 	fmt.Println("[")
-	for it.Next(unsafe.Pointer(natKey), unsafe.Pointer(natVal)) {
+	for it.Next(natKey, natVal) {
 		if first {
 			first = false
 		} else {

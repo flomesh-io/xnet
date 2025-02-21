@@ -142,3 +142,11 @@ func _tcp_state_(state uint8) string {
 		return ""
 	}
 }
+
+func _write_(sb *strings.Builder, str string) {
+	if cnt, err := sb.WriteString(str); err != nil {
+		log.Error().Err(err).Msgf("fail to write string: %s", str)
+	} else if cnt != len(str) {
+		log.Error().Msgf("fail to write string: %s", str)
+	}
+}
