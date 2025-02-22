@@ -24,11 +24,13 @@ BPF_CFLAGS = \
 CGO_CFLAGS_DYN = "-I. -I./kern/include -I/usr/include/"
 CGO_LDFLAGS_DYN = "-lelf -lz -lbpf"
 
+BPF_LOAD_FLAGS ?= $(shell if bpftool --version | grep libbpf_strict > /dev/null 2>&1; then echo --legacy; fi)
+
 BPF_FS  = /sys/fs/bpf
 
 .PHONY: c-fmt
 c-fmt:
-	@find . -regex '.*\.\(c\|h\)' -exec clang-format -style=file -i {} \;
+	@find . -regex '.*\.\(c\|h\)' -exec clang-format -style=file -i {} \; > /dev/null 2>&1 || true
 
 .PHONY: bpf-fs
 bpf-fs:
@@ -67,8 +69,7 @@ build-cli:
 build-bpf: bpf-clean bpf-fmt bpf-build
 
 .PHONY: bpf-fmt
-bpf-fmt:
-	@find . -regex '.*\.\(c\|h\)' -exec clang-format -style=file -i {} \;
+bpf-fmt: c-fmt
 
 .PHONY: bpf-build
 bpf-build: ${BIN_DIR}/${XNET_KERN_OUT}
@@ -82,7 +83,7 @@ bpf-clean:
 
 .PHONY: load
 load: debug-fs bpf-fs c-fmt bpf-build
-	@bpftool prog loadall ${BIN_DIR}/${XNET_KERN_OUT} /sys/fs/bpf/fsm pinmaps /sys/fs/bpf/fsm > /dev/null 2>&1
+	@bpftool prog loadall ${BIN_DIR}/${XNET_KERN_OUT} /sys/fs/bpf/fsm pinmaps /sys/fs/bpf/fsm ${BPF_LOAD_FLAGS} > /dev/null 2>&1
 
 .PHONY: clean
 clean: bpf-clean

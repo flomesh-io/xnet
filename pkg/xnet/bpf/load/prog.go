@@ -2,7 +2,10 @@ package load
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
@@ -11,8 +14,43 @@ import (
 )
 
 const (
-	bpftoolCmd = `/usr/local/bin/bpftool`
+	bpftoolCmd            = `bpftool`
+	libbpf_strict_feature = `libbpf_strict`
 )
+
+var (
+	searchBinPaths = []string{
+		`/usr/local/bin`,
+		`/usr/sbin`,
+	}
+)
+
+func findBpftoolPath() (bpftoolBin string, legacy bool, err error) {
+	for _, binPath := range searchBinPaths {
+		bpftoolBin = path.Join(binPath, bpftoolCmd)
+		if exists := util.Exists(bpftoolBin); exists {
+			break
+		}
+	}
+
+	if len(bpftoolBin) > 0 {
+		args := []string{
+			`version`,
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, bpftoolBin, args...) // nolint gosec
+		if output, e := cmd.Output(); e == nil && len(output) > 0 {
+			if strings.Contains(string(output), libbpf_strict_feature) {
+				legacy = true
+			}
+		}
+	} else {
+		err = fmt.Errorf("fail to find %s", bpftoolCmd)
+	}
+
+	return
+}
 
 func ProgLoadAll() {
 	pinningDir := fs.GetPinningDir()
@@ -28,11 +66,20 @@ func ProgLoadAll() {
 		pinningDir,
 	}
 
+	bpftoolBin, legacy, err := findBpftoolPath()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("fail to find %s", bpftoolCmd)
+		return
+	}
+
+	if legacy {
+		args = append(args, `--legacy`)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, bpftoolCmd, args...) // nolint gosec
-	output, err := cmd.Output()
-	if err != nil {
+	cmd := exec.CommandContext(ctx, bpftoolBin, args...) // nolint gosec
+	if output, err := cmd.Output(); err != nil {
 		log.Debug().Msg(err.Error())
 	} else if len(output) > 0 {
 		log.Debug().Msg(string(output))
