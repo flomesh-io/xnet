@@ -3,7 +3,6 @@ package maps
 import (
 	"fmt"
 	"time"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 
@@ -17,7 +16,7 @@ func AddUDPFlowEntry(sysId SysID, flowKey *FlowKey, flowVal *FlowUDPVal) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_UDP_FLOW)
 	if flowMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer flowMap.Close()
-		return flowMap.Update(unsafe.Pointer(flowKey), unsafe.Pointer(flowVal), ebpf.UpdateAny)
+		return flowMap.Update(flowKey, flowVal, ebpf.UpdateAny)
 	} else {
 		return err
 	}
@@ -28,7 +27,7 @@ func DelUDPFlowEntry(sysId SysID, flowKey *FlowKey) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_UDP_FLOW)
 	if flowMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer flowMap.Close()
-		return flowMap.Delete(unsafe.Pointer(flowKey))
+		return flowMap.Delete(flowKey)
 	} else {
 		return err
 	}
@@ -74,7 +73,7 @@ func FlushIdleUDPFlowEntries(sysId SysID, idleSeconds, batchSize int) (int, erro
 	flowKey := new(FlowKey)
 	flowVal := new(FlowUDPVal)
 	it := flowMap.Iterate()
-	for it.Next(unsafe.Pointer(flowKey), unsafe.Pointer(flowVal)) {
+	for it.Next(flowKey, flowVal) {
 		escapeDuration := uptimeDuration - time.Duration(flowVal.Atime)*time.Nanosecond
 		if escapeDuration > idleDuration {
 			idleFlowKeys[idleFlowIdx] = *flowKey
@@ -124,7 +123,7 @@ func ShowUDPFlowEntries() {
 	it := flowMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(flowKey), unsafe.Pointer(flowVal)) {
+	for it.Next(flowKey, flowVal) {
 		if first {
 			first = false
 		} else {

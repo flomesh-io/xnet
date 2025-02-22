@@ -3,7 +3,6 @@ package maps
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
@@ -16,7 +15,7 @@ func AddIFaceEntry(ifaceKey *IFaceKey, ifaceVal *IFaceVal) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_IFS)
 	if ifaceMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer ifaceMap.Close()
-		return ifaceMap.Update(unsafe.Pointer(ifaceKey), unsafe.Pointer(ifaceVal), ebpf.UpdateAny)
+		return ifaceMap.Update(ifaceKey, ifaceVal, ebpf.UpdateAny)
 	} else {
 		return err
 	}
@@ -26,7 +25,7 @@ func DelIFaceEntry(ifaceKey *IFaceKey) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_IFS)
 	if ifaceMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer ifaceMap.Close()
-		err = ifaceMap.Delete(unsafe.Pointer(ifaceKey))
+		err = ifaceMap.Delete(ifaceKey)
 		if errors.Is(err, unix.ENOENT) {
 			return nil
 		}
@@ -41,7 +40,7 @@ func GetIFaceEntry(ifaceKey *IFaceKey) (*IFaceVal, error) {
 	if natMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer natMap.Close()
 		ifaceVal := new(IFaceVal)
-		err = natMap.Lookup(unsafe.Pointer(ifaceKey), unsafe.Pointer(ifaceVal))
+		err = natMap.Lookup(ifaceKey, ifaceVal)
 		return ifaceVal, err
 	} else {
 		return nil, err
@@ -59,7 +58,7 @@ func GetIFaceEntries() map[IFaceKey]IFaceVal {
 	ifaceKey := new(IFaceKey)
 	ifaceVal := new(IFaceVal)
 	it := ifaceMap.Iterate()
-	for it.Next(unsafe.Pointer(ifaceKey), unsafe.Pointer(ifaceVal)) {
+	for it.Next(ifaceKey, ifaceVal) {
 		items[*ifaceKey] = *ifaceVal
 	}
 	return items
@@ -78,7 +77,7 @@ func ShowIFaceEntries() {
 	it := ifaceMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(ifaceKey), unsafe.Pointer(ifaceVal)) {
+	for it.Next(ifaceKey, ifaceVal) {
 		if first {
 			first = false
 		} else {

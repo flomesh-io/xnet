@@ -3,7 +3,6 @@ package maps
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
@@ -17,7 +16,7 @@ func AddTraceIPEntry(sysId SysID, traceIPKey *TraceIPKey, traceIPVal *TraceIPVal
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_IP)
 	if traceIPMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer traceIPMap.Close()
-		return traceIPMap.Update(unsafe.Pointer(traceIPKey), unsafe.Pointer(traceIPVal), ebpf.UpdateAny)
+		return traceIPMap.Update(traceIPKey, traceIPVal, ebpf.UpdateAny)
 	} else {
 		return err
 	}
@@ -28,7 +27,7 @@ func DelTraceIPEntry(sysId SysID, traceIPKey *TraceIPKey) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_IP)
 	if traceIPMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer traceIPMap.Close()
-		err = traceIPMap.Delete(unsafe.Pointer(traceIPKey))
+		err = traceIPMap.Delete(traceIPKey)
 		if errors.Is(err, unix.ENOENT) {
 			return nil
 		}
@@ -51,7 +50,7 @@ func ShowTraceIPEntries() {
 	it := traceIPMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(traceIPKey), unsafe.Pointer(traceIPVal)) {
+	for it.Next(traceIPKey, traceIPVal) {
 		if first {
 			first = false
 		} else {

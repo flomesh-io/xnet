@@ -3,7 +3,6 @@ package maps
 import (
 	"errors"
 	"fmt"
-	"unsafe"
 
 	"github.com/cilium/ebpf"
 	"golang.org/x/sys/unix"
@@ -17,7 +16,7 @@ func AddTracePortEntry(sysId SysID, tracePortKey *TracePortKey, tracePortVal *Tr
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_PORT)
 	if tracePortMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer tracePortMap.Close()
-		return tracePortMap.Update(unsafe.Pointer(tracePortKey), unsafe.Pointer(tracePortVal), ebpf.UpdateAny)
+		return tracePortMap.Update(tracePortKey, tracePortVal, ebpf.UpdateAny)
 	} else {
 		return err
 	}
@@ -28,7 +27,7 @@ func DelTracePortEntry(sysId SysID, tracePortKey *TracePortKey) error {
 	pinnedFile := fs.GetPinningFile(bpf.FSM_MAP_NAME_TRACE_PORT)
 	if tracePortMap, err := ebpf.LoadPinnedMap(pinnedFile, &ebpf.LoadPinOptions{}); err == nil {
 		defer tracePortMap.Close()
-		err = tracePortMap.Delete(unsafe.Pointer(tracePortKey))
+		err = tracePortMap.Delete(tracePortKey)
 		if errors.Is(err, unix.ENOENT) {
 			return nil
 		}
@@ -51,7 +50,7 @@ func ShowTracePortEntries() {
 	it := tracePortMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(unsafe.Pointer(tracePortKey), unsafe.Pointer(tracePortVal)) {
+	for it.Next(tracePortKey, tracePortVal) {
 		if first {
 			first = false
 		} else {
