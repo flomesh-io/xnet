@@ -37,12 +37,6 @@ RUN make bpf-build
 
 FROM ubuntu:22.04
 
-RUN apt-get update && \
-  apt-get install -y iproute2 iputils-arping jq && \
-  apt-get purge --auto-remove && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 COPY --from=gobuilder /app/dist/xctr /fsm-xnet-engine
