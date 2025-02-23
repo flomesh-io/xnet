@@ -35,7 +35,7 @@ COPY Makefile.cli.mk Makefile
 RUN mkdir -p bin
 RUN make bpf-build
 
-FROM ubuntu:22.04
+FROM flomesh/ubuntu:22.04
 
 WORKDIR /app
 
