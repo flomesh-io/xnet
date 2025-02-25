@@ -86,6 +86,29 @@ jobs:
       - name: Go Build
         run: make -f Makefile.cli.mk build-cli
 
+  imagescan:
+    name: Scan images for security vulnerabilities
+    runs-on: ubuntu-latest
+    env:
+      CTR_TAG: ${{ github.sha }}
+      CTR_REGISTRY: "localhost:5000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build docker images
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+        run: make docker-build
+      - name: Setup Trivy
+        run: make trivy-ci-setup
+      - name: Scan docker images for vulnerabilities
+        run: make trivy-scan-images
+
   images:
     name: Docker Images
     runs-on: ubuntu-latest

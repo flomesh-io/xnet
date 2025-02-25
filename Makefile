@@ -35,6 +35,37 @@ docker-build: $(DOCKER_TARGETS)
 docker-build-cross: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
 docker-build-cross: docker-build
 
+.PHONY: trivy-ci-setup
+trivy-ci-setup:
+	wget https://github.com/aquasecurity/trivy/releases/download/v0.59.1/trivy_0.59.1_Linux-64bit.tar.gz
+	tar zxvf trivy_0.59.1_Linux-64bit.tar.gz
+	echo $$(pwd) >> $(GITHUB_PATH)
+
+# Show all vulnerabilities in logs
+trivy-scan-verbose-%: NAME=$(@:trivy-scan-verbose-%=%)
+trivy-scan-verbose-%:
+	trivy image --scanners vuln,secret \
+	  --pkg-types os \
+	  --db-repository aquasec/trivy-db:2 \
+	  "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
+
+# Exit if vulnerability exists
+trivy-scan-fail-%: NAME=$(@:trivy-scan-fail-%=%)
+trivy-scan-fail-%:
+	trivy image --exit-code 1 \
+	  --ignore-unfixed \
+	  --severity MEDIUM,HIGH,CRITICAL \
+	  --dependency-tree \
+	  --scanners vuln,secret \
+	  --pkg-types os \
+	  --db-repository aquasec/trivy-db:2 \
+	  "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
+
+.PHONY: trivy-scan-images trivy-scan-images-fail trivy-scan-images-verbose
+trivy-scan-images-verbose: $(addprefix trivy-scan-verbose-, $(TARGETS))
+trivy-scan-images-fail: $(addprefix trivy-scan-fail-, $(TARGETS))
+trivy-scan-images: trivy-scan-images-verbose trivy-scan-images-fail
+
 .PHONY: release
 VERSION_REGEXP := ^v[0-9]+\.[0-9]+\.[0-9]+(\-(alpha|beta|rc)\.[0-9]+)?$
 release: ## Create a release tag, push to git repository and trigger the release workflow.
