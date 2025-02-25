@@ -1,0 +1,19 @@
+name: Repository Dispatch - Create Tag
+on:
+  repository_dispatch:
+    types: [fsm-release]
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create tag
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/${{ github.event.client_payload.version }}',
+              sha: context.sha
+            })
