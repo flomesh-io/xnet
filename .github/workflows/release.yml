@@ -83,8 +83,11 @@ jobs:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
+          allowUpdates: true
+          skipIfReleaseExists: false
           name: ${{ env.VERSION }}
-          generate_release_notes: true
+          tag: ${{ env.VERSION }}
+          generateReleaseNotes: true
           prerelease: ${{ contains(env.VERSION, '-alpha.') || contains(env.VERSION, '-beta.') || contains(env.VERSION, '-rc.') || contains(env.VERSION, '-nightly.') }}
