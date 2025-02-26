@@ -6,8 +6,6 @@ ARG TARGETARCH
 
 WORKDIR /app
 
-RUN go env -w GOPROXY=https://goproxy.cn
-
 ADD go.mod .
 ADD go.sum .
 
@@ -31,7 +29,7 @@ FROM openeuler/openeuler:22.03-lts-sp1 AS ccbuilder
 
 WORKDIR /app
 
-RUN yum install -y git make llvm clang libbpf-devel binutils-devel
+RUN yum install -y git make llvm clang libbpf-devel
 
 COPY kern kern
 COPY Makefile.cli.mk Makefile
