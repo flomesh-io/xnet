@@ -21,6 +21,8 @@ BPF_CFLAGS = \
 	-Wno-pointer-sign     \
 	-Wno-compare-distinct-pointer-types
 
+BPF_EXTRA_CFLAGS ?=
+
 CGO_CFLAGS_DYN = "-I. -I./kern/include -I/usr/include/"
 CGO_LDFLAGS_DYN = "-lelf -lz -lbpf"
 
@@ -75,7 +77,7 @@ bpf-fmt: c-fmt
 bpf-build: ${BIN_DIR}/${XNET_KERN_OUT}
 
 ${BIN_DIR}/${XNET_KERN_OUT}: ${SRC_DIR}/${XNET_KERN_SRC}
-	@clang -I${INC_DIR} ${BPF_CFLAGS} -emit-llvm -c -g $< -o - | llc -march=bpf -filetype=obj -o $@
+	@clang -I${INC_DIR} ${BPF_CFLAGS} ${BPF_EXTRA_CFLAGS} -emit-llvm -c -g $< -o - | llc -march=bpf -filetype=obj -o $@
 
 .PHONY: bpf-clean
 bpf-clean:

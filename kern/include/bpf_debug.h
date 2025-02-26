@@ -1,7 +1,13 @@
 #ifndef __FSM_XNETWORK_DEBUG_H__
 #define __FSM_XNETWORK_DEBUG_H__
 
+#ifndef BPF_DEBUG_OFF
 #define FSM_DBG debug_printf
+#else
+#define FSM_DBG(fmt, ...)                                                      \
+    do {                                                                       \
+    } while (0)
+#endif
 
 #define FSM_DBG_FLOW(msg, flow, v6)                                            \
     FSM_DBG("[DBG] " msg);                                                     \

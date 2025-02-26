@@ -21,6 +21,7 @@ const (
 const (
 	FSM_PASS_PROG_KEY = uint32(0)
 	FSM_DROP_PROG_KEY = uint32(1)
+	FSM_FLOW_PROG_KEY = uint32(2)
 )
 
 const (
@@ -35,4 +36,5 @@ const (
 
 	FSM_PASS_PROG_NAME = `classifier_pass`
 	FSM_DROP_PROG_NAME = `classifier_drop`
+	FSM_FLOW_PROG_NAME = `classifier_flow`
 )

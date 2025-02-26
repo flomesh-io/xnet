@@ -106,19 +106,11 @@ xpkt_flow_nat_endpoint(skb_t *skb, xpkt_t *pkt, nat_op_t *ops)
 
     xpkt_spin_lock(&ops->lock);
     ep_sel = ops->ep_sel;
-    while (ep_idx < FSM_NAT_MAX_ENDPOINTS) {
-        if (ep_sel < FSM_NAT_MAX_ENDPOINTS) {
-            ep = &ops->eps[ep_sel];
-            if (ep->active == 1) {
-                ep_sel = (ep_sel + 1) % ops->ep_cnt;
-                ops->ep_sel = ep_sel;
-                sel = ep_sel;
-                break;
-            }
-        }
-        ep_sel++;
-        ep_sel = ep_sel % ops->ep_cnt;
-        ep_idx++;
+    if (ep_sel < FSM_NAT_MAX_ENDPOINTS) {
+        ep = &ops->eps[ep_sel];
+        ep_sel = (ep_sel + 1) % ops->ep_cnt;
+        ops->ep_sel = ep_sel;
+        sel = ep_sel;
     }
     xpkt_spin_unlock(&ops->lock);
     return sel;

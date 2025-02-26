@@ -31,6 +31,10 @@ func InitProgEntries() error {
 			progKey:  ProgKey(bpf.FSM_DROP_PROG_KEY),
 			progName: bpf.FSM_DROP_PROG_NAME,
 		},
+		{
+			progKey:  ProgKey(bpf.FSM_FLOW_PROG_KEY),
+			progName: bpf.FSM_FLOW_PROG_NAME,
+		},
 	}
 
 	for _, prog := range progs {

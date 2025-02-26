@@ -23,6 +23,12 @@ buildx-context:
 docker-build-xnet:
 	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:$(CTR_TAG) -f Dockerfile --build-arg LDFLAGS=$(LDFLAGS) .
 
+.PHONY: docker-build-bclinux-euler-22.10
+docker-build-bclinux-euler-22.10: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
+docker-build-bclinux-euler-22.10:
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:$(CTR_TAG) -f Dockerfile.bclinux.euler.22.10 --build-arg LDFLAGS=$(LDFLAGS) .
+
+
 TARGETS = xnet
 DOCKER_TARGETS = $(addprefix docker-build-, $(TARGETS))
 

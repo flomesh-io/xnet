@@ -1,0 +1,55 @@
+# syntax = docker/dockerfile:1.4
+FROM --platform=$BUILDPLATFORM golang:1.23 AS gobuilder
+ARG LDFLAGS
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /app
+
+RUN go env -w GOPROXY=https://goproxy.cn
+
+ADD go.mod .
+ADD go.sum .
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    go mod download
+
+ADD . .
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xctr -ldflags "$LDFLAGS" ./cmd/xctr/*
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xcni -ldflags "$LDFLAGS" ./cmd/xcni/*
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xnat -ldflags "$LDFLAGS" ./cmd/xnat/*
+
+FROM openeuler/openeuler:22.03-lts-sp1 AS ccbuilder
+
+WORKDIR /app
+
+RUN yum install -y git make llvm clang libbpf-devel binutils-devel
+
+COPY kern kern
+COPY Makefile.cli.mk Makefile
+
+RUN mkdir bin
+RUN BPF_EXTRA_CFLAGS="-DSPIN_LOCK_OFF=1 -DBPF_ANNOTATE_KV_PAIR_OFF=1 -DBPF_GLOBAL_DATE_OFF=1 -DBPF_DEBUG_OFF=1 -DBPF_LARGE_INSNS_OFF=1" make bpf-build
+
+RUN git clone https://github.com/torvalds/linux.git --depth 1 -b v5.10
+RUN cd linux/tools/bpf/bpftool && make && make install
+
+FROM openeuler/openeuler:22.03-lts-sp1
+
+WORKDIR /app
+
+COPY --from=gobuilder /app/dist/xctr /fsm-xnet-engine
+COPY --from=gobuilder /app/dist/xnat /usr/local/bin/xnat
+COPY --from=gobuilder /app/dist/xcni .fsm/.xcni
+COPY --from=ccbuilder /app/bin/xnet.kern.o .fsm/.xnet.kern.o
+COPY --from=ccbuilder /usr/local/sbin/bpftool /usr/local/bin/bpftool
+
+STOPSIGNAL SIGQUIT
