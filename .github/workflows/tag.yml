@@ -22,7 +22,7 @@ jobs:
               github.rest.git.updateRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: 'refs/tags/${{ github.event.client_payload.version }}',
+                ref: 'tags/${{ github.event.client_payload.version }}',
                 sha: context.sha,
                 force: true
               });
