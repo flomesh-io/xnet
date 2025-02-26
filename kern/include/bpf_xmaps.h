@@ -107,7 +107,9 @@ struct bpf_map_def SEC("maps") fsm_uflow = {
     .value_size = sizeof(flow_op_t),
     .max_entries = FSM_FLOW_MAP_ENTRIES,
 };
+#ifndef BPF_ANNOTATE_KV_PAIR_OFF
 BPF_ANNOTATE_KV_PAIR(fsm_uflow, xpkt_flow_t, xpkt_flow_op_t);
+#endif
 #else /* BTF definitions */
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);

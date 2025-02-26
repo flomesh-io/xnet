@@ -337,12 +337,16 @@ INTERNAL(int) process(skb_t *skb, xpkt_t *pkt)
         }
     }
 
+#ifndef BPF_LARGE_INSNS_OFF
     __s8 trans = xpkt_flow_proc(skb, pkt, cfg, flags, xflow, xopt);
     if (flags->trace_hdr_on) {
         FSM_DBG("[DBG] TRANS: %d\n", trans);
     }
-
     return dispatch(skb, pkt, cfg, flags);
+#else
+    xpkt_tail_call(skb, pkt, FSM_CNI_FLOW_PROG_ID);
+    return TC_ACT_SHOT;
+#endif
 
 decode_fail:
     if (ret < DECODE_OK) {
@@ -502,6 +506,67 @@ decode_fail:
         return TC_ACT_SHOT;
     }
     return TC_ACT_SHOT;
+}
+
+SEC("classifier/flow")
+int flow(skb_t *skb)
+{
+#ifdef BPF_LARGE_INSNS_OFF
+    int z = 0;
+    xpkt_t *pkt = bpf_map_lookup_elem(&fsm_xpkt, &z);
+    if (!pkt) {
+        return TC_ACT_SHOT;
+    }
+
+    cfg_t *cfg = bpf_map_lookup_elem(&fsm_xcfg, &pkt->flow.sys);
+    if (!cfg) {
+        return TC_ACT_SHOT;
+    }
+
+    void *xflow = NULL;
+    void *xopt = NULL;
+    flags_t *flags = NULL;
+    if (pkt->v6) {
+        flags = &cfg->ipv6.tflags;
+        if (pkt->flow.proto == IPPROTO_TCP) {
+            xflow = &fsm_tflow;
+            xopt = &fsm_topt;
+        } else if (pkt->flow.proto == IPPROTO_UDP) {
+            xflow = &fsm_uflow;
+            xopt = &fsm_uopt;
+        } else {
+            if (flags->oth_proto_deny_all) {
+                return TC_ACT_SHOT;
+            }
+            return TC_ACT_OK;
+        }
+    } else {
+        flags = &cfg->ipv4.tflags;
+        if (pkt->ipv4_frag == 0) {
+            if (pkt->flow.proto == IPPROTO_TCP) {
+                xflow = &fsm_tflow;
+                xopt = &fsm_topt;
+            } else if (pkt->flow.proto == IPPROTO_UDP) {
+                xflow = &fsm_uflow;
+                xopt = &fsm_uopt;
+            } else {
+                if (flags->oth_proto_deny_all) {
+                    return TC_ACT_SHOT;
+                }
+                return TC_ACT_OK;
+            }
+        }
+    }
+
+    __s8 trans = xpkt_flow_proc(skb, pkt, cfg, flags, xflow, xopt);
+    if (flags->trace_hdr_on) {
+        FSM_DBG("[DBG] TRANS: %d\n", trans);
+    }
+
+    return dispatch(skb, pkt, cfg, flags);
+#else
+    return TC_ACT_SHOT;
+#endif
 }
 
 SEC("classifier/noop/ingress")

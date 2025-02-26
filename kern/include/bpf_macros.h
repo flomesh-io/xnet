@@ -53,11 +53,19 @@
 
 #define ETH_TYPE_ETH2(x) ((x) >= htons(1536))
 
+#ifndef BPF_GLOBAL_DATE_OFF
 #define debug_printf(fmt, ...)                                                 \
     do {                                                                       \
         static char _fmt[] = fmt;                                              \
         bpf_trace_printk(_fmt, sizeof(_fmt), ##__VA_ARGS__);                   \
     } while (0)
+#else
+#define debug_printf(fmt, ...)                                                 \
+    do {                                                                       \
+        char _fmt[] = fmt;                                                     \
+        bpf_trace_printk(_fmt, sizeof(_fmt), ##__VA_ARGS__);                   \
+    } while (0)
+#endif
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define ntohs(x) __builtin_bswap16(x)
