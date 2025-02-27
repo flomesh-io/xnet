@@ -25,10 +25,10 @@ jobs:
       BUILD_GITCOMMIT_VAR: 'github.com/flomesh-io/xnet/pkg/version.GitCommit'
     steps:
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.4.0
+        uses: docker/setup-qemu-action@v3.5.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3.9.0
+        uses: docker/setup-buildx-action@v3.10.0
 
       - name: Login to DockerHub
         uses: docker/login-action@v3.3.0
@@ -49,7 +49,7 @@ jobs:
 
       - name: Docker meta
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v5.6.1
+        uses: crazy-max/ghaction-docker-meta@v5.7.0
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/xnet
           tags: |
@@ -64,7 +64,7 @@ jobs:
           echo "GIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Build and Push
-        uses: docker/build-push-action@v6.14.0
+        uses: docker/build-push-action@v6.15.0
         with:
           context: .
           file: ./Dockerfile
