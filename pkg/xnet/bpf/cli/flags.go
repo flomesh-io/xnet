@@ -148,3 +148,17 @@ func (c *netns) validateDevFlag() error {
 	}
 	return nil
 }
+
+type arpEntry struct {
+	addr     net.IP
+	mac      string
+	dev      string
+	neighMac string
+}
+
+func (c *arpEntry) addFlags(f *flag.FlagSet) {
+	f.StringVar(&c.dev, "dev", "eth0", "--dev=eth0")
+	f.IPVar(&c.addr, "addr", net.ParseIP("0.0.0.0"), "--addr=0.0.0.0")
+	f.StringVar(&c.mac, "mac", "", "--mac=00:00:00:00:00:00")
+	f.StringVar(&c.neighMac, "neigh-mac", "ec:ec:ec:ec:ec:ec", "--neigh-mac=ec:ec:ec:ec:ec:ec")
+}

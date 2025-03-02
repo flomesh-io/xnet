@@ -77,6 +77,7 @@ bpf-fmt: c-fmt
 bpf-build: ${BIN_DIR}/${XNET_KERN_OUT}
 
 ${BIN_DIR}/${XNET_KERN_OUT}: ${SRC_DIR}/${XNET_KERN_SRC}
+	@mkdir -p ${BIN_DIR}
 	@clang -I${INC_DIR} ${BPF_CFLAGS} ${BPF_EXTRA_CFLAGS} -emit-llvm -c -g $< -o - | llc -march=bpf -filetype=obj -o $@
 
 .PHONY: bpf-clean

@@ -34,7 +34,6 @@ RUN yum install -y git make llvm clang libbpf-devel
 COPY kern kern
 COPY Makefile.cli.mk Makefile
 
-RUN mkdir bin
 RUN BPF_EXTRA_CFLAGS="-DSPIN_LOCK_OFF=1 -DBPF_ANNOTATE_KV_PAIR_OFF=1 -DBPF_GLOBAL_DATE_OFF=1 -DBPF_DEBUG_OFF=1 -DBPF_LARGE_INSNS_OFF=1" make bpf-build
 
 RUN git clone https://github.com/torvalds/linux.git --depth 1 -b v5.10

@@ -36,27 +36,29 @@ INTERNAL(int) dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags)
 {
     if (XFLAG_HAS(pkt->nfs[pkt->tc_dir], NF_XNAT)) {
         if (pkt->flow.proto == IPPROTO_TCP) {
+#ifndef FSM_TRACE_NAT_OFF
             if (flags->trace_nat_on) {
                 if (pkt->v6) {
-                    FSM_DBG("[DBG] TCP SNAT [%pI6[]:%d\n", pkt->xaddr,
-                            ntohs(pkt->xport));
-                    FSM_DBG("[DBG] TCP DNAT [%pI6]:%d\n", pkt->raddr,
-                            ntohs(pkt->rport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] TCP SNAT [%pI6[]:%d\n",
+                                         pkt->xaddr, ntohs(pkt->xport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] TCP DNAT [%pI6]:%d\n",
+                                         pkt->raddr, ntohs(pkt->rport));
                 } else {
-                    FSM_DBG("[DBG] TCP SNAT %pI4:%d\n", &pkt->xaddr4,
-                            ntohs(pkt->xport));
-                    FSM_DBG("[DBG] TCP DNAT %pI4:%d\n", &pkt->raddr4,
-                            ntohs(pkt->rport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] TCP SNAT %pI4:%d\n",
+                                         &pkt->xaddr4, ntohs(pkt->xport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] TCP DNAT %pI4:%d\n",
+                                         &pkt->raddr4, ntohs(pkt->rport));
                 }
-                FSM_DBG("[DBG] TCP SHW %02x:%02x:%02x\n", pkt->xmac[0],
-                        pkt->xmac[1], pkt->xmac[2]);
-                FSM_DBG("[DBG]         %02x:%02x:%02x\n", pkt->xmac[3],
-                        pkt->xmac[4], pkt->xmac[5]);
-                FSM_DBG("[DBG] TCP DHW %02x:%02x:%02x\n", pkt->rmac[0],
-                        pkt->rmac[1], pkt->rmac[2]);
-                FSM_DBG("[DBG]         %02x:%02x:%02x\n", pkt->rmac[3],
-                        pkt->rmac[4], pkt->rmac[5]);
+                FSM_TRACE_NAT_PRINTF("[NAT] TCP SHW %02x:%02x:%02x\n",
+                                     pkt->xmac[0], pkt->xmac[1], pkt->xmac[2]);
+                FSM_TRACE_NAT_PRINTF("[NAT]         %02x:%02x:%02x\n",
+                                     pkt->xmac[3], pkt->xmac[4], pkt->xmac[5]);
+                FSM_TRACE_NAT_PRINTF("[NAT] TCP DHW %02x:%02x:%02x\n",
+                                     pkt->rmac[0], pkt->rmac[1], pkt->rmac[2]);
+                FSM_TRACE_NAT_PRINTF("[NAT]         %02x:%02x:%02x\n",
+                                     pkt->rmac[3], pkt->rmac[4], pkt->rmac[5]);
             }
+#endif
 
             if (pkt->v6) {
                 xpkt_csum_set_tcp_dst_ipv6(skb, pkt, pkt->raddr);
@@ -79,27 +81,29 @@ INTERNAL(int) dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags)
             XMAC_COPY(eth->h_dest, pkt->rmac);
             XMAC_COPY(eth->h_source, pkt->xmac);
         } else if (pkt->flow.proto == IPPROTO_UDP) {
+#ifndef FSM_TRACE_NAT_OFF
             if (flags->trace_nat_on) {
                 if (pkt->v6) {
-                    FSM_DBG("[DBG] UDP SNAT [%pI6]:%d\n", pkt->xaddr,
-                            ntohs(pkt->xport));
-                    FSM_DBG("[DBG] UDP DNAT [%pI6]:%d\n", pkt->raddr,
-                            ntohs(pkt->rport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] UDP SNAT [%pI6]:%d\n",
+                                         pkt->xaddr, ntohs(pkt->xport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] UDP DNAT [%pI6]:%d\n",
+                                         pkt->raddr, ntohs(pkt->rport));
                 } else {
-                    FSM_DBG("[DBG] UDP SNAT %pI4:%d\n", &pkt->xaddr4,
-                            ntohs(pkt->xport));
-                    FSM_DBG("[DBG] UDP DNAT %pI4:%d\n", &pkt->raddr4,
-                            ntohs(pkt->rport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] UDP SNAT %pI4:%d\n",
+                                         &pkt->xaddr4, ntohs(pkt->xport));
+                    FSM_TRACE_NAT_PRINTF("[NAT] UDP DNAT %pI4:%d\n",
+                                         &pkt->raddr4, ntohs(pkt->rport));
                 }
-                FSM_DBG("[DBG] TCP SHW %02x:%02x:%02x\n", pkt->xmac[0],
-                        pkt->xmac[1], pkt->xmac[2]);
-                FSM_DBG("[DBG]         %02x:%02x:%02x\n", pkt->xmac[3],
-                        pkt->xmac[4], pkt->xmac[5]);
-                FSM_DBG("[DBG] TCP DHW %02x:%02x:%02x\n", pkt->rmac[0],
-                        pkt->rmac[1], pkt->rmac[2]);
-                FSM_DBG("[DBG]         %02x:%02x:%02x\n", pkt->rmac[3],
-                        pkt->rmac[4], pkt->rmac[5]);
+                FSM_TRACE_NAT_PRINTF("[NAT] TCP SHW %02x:%02x:%02x\n",
+                                     pkt->xmac[0], pkt->xmac[1], pkt->xmac[2]);
+                FSM_TRACE_NAT_PRINTF("[NAT]         %02x:%02x:%02x\n",
+                                     pkt->xmac[3], pkt->xmac[4], pkt->xmac[5]);
+                FSM_TRACE_NAT_PRINTF("[NAT] TCP DHW %02x:%02x:%02x\n",
+                                     pkt->rmac[0], pkt->rmac[1], pkt->rmac[2]);
+                FSM_TRACE_NAT_PRINTF("[NAT]         %02x:%02x:%02x\n",
+                                     pkt->rmac[3], pkt->rmac[4], pkt->rmac[5]);
             }
+#endif
 
             if (pkt->v6) {
                 xpkt_csum_set_udp_dst_ipv6(skb, pkt, pkt->raddr);
@@ -138,31 +142,44 @@ INTERNAL(int) dispatch(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags)
 
     if (XFLAG_HAS(pkt->nfs[pkt->tc_dir], NF_RDIR)) {
         if (pkt->ofi > 0) {
+
+#ifndef FSM_TRACE_NAT_OFF
             if (flags->trace_nat_on) {
-                FSM_DBG("[DBG] RDRT OFI: %d FLAGS: %d\n", pkt->ofi,
-                        pkt->oflags);
+                FSM_TRACE_NAT_PRINTF("[NAT] RDRT OFI: %d FLAGS: %d\n", pkt->ofi,
+                                     pkt->oflags);
             }
+#endif
+
             return bpf_redirect(pkt->ofi, pkt->oflags);
         }
 
+#ifndef FSM_TRACE_NAT_OFF
         if (flags->trace_nat_on) {
-            FSM_DBG("[DBG] RDRT IFI: %d FLAGS: %d\n", pkt->ifi, 0);
+            FSM_TRACE_NAT_PRINTF("[NAT] RDRT IFI: %d FLAGS: %d\n", pkt->ifi, 0);
         }
+#endif
+
         return bpf_redirect(pkt->ifi, 0);
     }
 
     if (pkt->nfs[pkt->tc_dir] == NF_DENY) {
         return TC_ACT_SHOT;
     } else if (XFLAG_HAS(pkt->nfs[pkt->tc_dir], NF_ALLOW)) {
+#ifndef FSM_TRACE_NAT_OFF
         if (flags->trace_nat_on) {
-            FSM_DBG("[DBG] ALLOW \n");
+            FSM_TRACE_NAT_PRINTF("[NAT] ALLOW \n");
         }
+#endif
         return TC_ACT_OK;
     }
 
+#ifndef FSM_TRACE_NAT_OFF
     if (flags->trace_nat_on) {
-        FSM_DBG("[DBG] default by nfs %d\n", pkt->nfs[pkt->tc_dir]);
+        FSM_TRACE_NAT_PRINTF("[NAT] default by nfs %d\n",
+                             pkt->nfs[pkt->tc_dir]);
     }
+#endif
+
     return TC_ACT_OK;
 }
 
@@ -288,43 +305,46 @@ INTERNAL(int) process(skb_t *skb, xpkt_t *pkt)
         xpkt_trace_check(skb, pkt, cfg, flags);
     }
 
+#ifndef FSM_TRACE_HDR_OFF
     if (flags->trace_hdr_on) {
-        FSM_DBG("\n");
+        FSM_TRACE_HDR_PRINTF("\n");
         if (pkt->tc_dir == TC_DIR_IGR) {
-            FSM_DBG("[DBG] TC --> INGRESS\n");
+            FSM_TRACE_HDR_PRINTF("[HDR] TC --> INGRESS\n");
         }
         if (pkt->tc_dir == TC_DIR_EGR) {
-            FSM_DBG("[DBG] TC EGRESS -->\n");
+            FSM_TRACE_HDR_PRINTF("[HDR] TC EGRESS -->\n");
         }
 
         if (pkt->v6) {
-            FSM_DBG("[DBG] SRC [%pI6]:%d\n", pkt->flow.saddr,
-                    ntohs(pkt->flow.sport));
-            FSM_DBG("[DBG] DST [%pI6]:%d\n", pkt->flow.daddr,
-                    ntohs(pkt->flow.dport));
+            FSM_TRACE_HDR_PRINTF("[HDR] SRC [%pI6]:%d\n", pkt->flow.saddr,
+                                 ntohs(pkt->flow.sport));
+            FSM_TRACE_HDR_PRINTF("[HDR] DST [%pI6]:%d\n", pkt->flow.daddr,
+                                 ntohs(pkt->flow.dport));
         } else {
-            FSM_DBG("[DBG] SRC %pI4:%d\n", &pkt->flow.saddr4,
-                    ntohs(pkt->flow.sport));
-            FSM_DBG("[DBG] DST %pI4:%d\n", &pkt->flow.daddr4,
-                    ntohs(pkt->flow.dport));
+            FSM_TRACE_HDR_PRINTF("[HDR] SRC %pI4:%d\n", &pkt->flow.saddr4,
+                                 ntohs(pkt->flow.sport));
+            FSM_TRACE_HDR_PRINTF("[HDR] DST %pI4:%d\n", &pkt->flow.daddr4,
+                                 ntohs(pkt->flow.dport));
         }
-        FSM_DBG("[DBG] SHW %02x:%02x:%02x\n", pkt->smac[0], pkt->smac[1],
-                pkt->smac[2]);
-        FSM_DBG("[DBG]     %02x:%02x:%02x\n", pkt->smac[3], pkt->smac[4],
-                pkt->smac[5]);
-        FSM_DBG("[DBG] DHW %02x:%02x:%02x\n", pkt->dmac[0], pkt->dmac[1],
-                pkt->dmac[2]);
-        FSM_DBG("[DBG]     %02x:%02x:%02x\n", pkt->dmac[3], pkt->dmac[4],
-                pkt->dmac[5]);
+        FSM_TRACE_HDR_PRINTF("[HDR] SHW %02x:%02x:%02x\n", pkt->smac[0],
+                             pkt->smac[1], pkt->smac[2]);
+        FSM_TRACE_HDR_PRINTF("[HDR]     %02x:%02x:%02x\n", pkt->smac[3],
+                             pkt->smac[4], pkt->smac[5]);
+        FSM_TRACE_HDR_PRINTF("[HDR] DHW %02x:%02x:%02x\n", pkt->dmac[0],
+                             pkt->dmac[1], pkt->dmac[2]);
+        FSM_TRACE_HDR_PRINTF("[HDR]     %02x:%02x:%02x\n", pkt->dmac[3],
+                             pkt->dmac[4], pkt->dmac[5]);
         void *dend = XPKT_PTR(XPKT_DATA_END(skb));
         struct tcphdr *t = XPKT_PTR_ADD(XPKT_DATA(skb), pkt->l4_off);
         if ((void *)(t + 1) > dend) {
             return -1;
         }
-        FSM_DBG("[DBG] SYN: %d ACK: %d FIN: %d\n", t->syn, t->ack, t->fin);
-        FSM_DBG("[DBG] SEQ: %u ACK_SEQ: %u IFI: %u\n", ntohl(t->seq),
-                ntohl(t->ack_seq), skb->ifindex);
+        FSM_TRACE_HDR_PRINTF("[HDR] SYN: %d ACK: %d FIN: %d\n", t->syn, t->ack,
+                             t->fin);
+        FSM_TRACE_HDR_PRINTF("[HDR] SEQ: %u ACK_SEQ: %u IFI: %u\n",
+                             ntohl(t->seq), ntohl(t->ack_seq), skb->ifindex);
     }
+#endif
 
     if (pkt->flow.sys == SYS_NOOP) {
         return TC_ACT_OK;
@@ -332,16 +352,20 @@ INTERNAL(int) process(skb_t *skb, xpkt_t *pkt)
 
     if (flags->acl_check_on) {
         xpkt_acl_check(skb, pkt, cfg, flags);
+#ifndef FSM_TRACE_ACL_OFF
         if (flags->trace_acl_on) {
-            FSM_DBG("[DBG] ACL AUDIT\n");
+            FSM_TRACE_ACL_PRINTF("[ACL] ACL AUDIT\n");
         }
+#endif
     }
 
 #ifndef BPF_LARGE_INSNS_OFF
     __s8 trans = xpkt_flow_proc(skb, pkt, cfg, flags, xflow, xopt);
+#ifndef FSM_TRACE_HDR_OFF
     if (flags->trace_hdr_on) {
-        FSM_DBG("[DBG] TRANS: %d\n", trans);
+        FSM_TRACE_HDR_PRINTF("[HDR] TRANS: %d\n", trans);
     }
+#endif
     return dispatch(skb, pkt, cfg, flags);
 #else
     xpkt_tail_call(skb, pkt, FSM_CNI_FLOW_PROG_ID);
@@ -463,41 +487,44 @@ INTERNAL(int) decode(skb_t *skb, xpkt_t *pkt)
         }
     }
 
-    FSM_DBG("\n");
+#ifndef FSM_TRACE_HDR_OFF
+    FSM_TRACE_HDR_PRINTF("\n");
     if (pkt->tc_dir == TC_DIR_IGR) {
-        FSM_DBG("[DBG] TC --> INGRESS\n");
+        FSM_TRACE_HDR_PRINTF("[HDR] TC --> INGRESS\n");
     }
     if (pkt->tc_dir == TC_DIR_EGR) {
-        FSM_DBG("[DBG] TC EGRESS -->\n");
+        FSM_TRACE_HDR_PRINTF("[HDR] TC EGRESS -->\n");
     }
 
     if (pkt->v6) {
-        FSM_DBG("[DBG] SRC [%pI6]:%d\n", pkt->flow.saddr,
-                ntohs(pkt->flow.sport));
-        FSM_DBG("[DBG] DST [%pI6]:%d\n", pkt->flow.daddr,
-                ntohs(pkt->flow.dport));
+        FSM_TRACE_HDR_PRINTF("[HDR] SRC [%pI6]:%d\n", pkt->flow.saddr,
+                             ntohs(pkt->flow.sport));
+        FSM_TRACE_HDR_PRINTF("[HDR] DST [%pI6]:%d\n", pkt->flow.daddr,
+                             ntohs(pkt->flow.dport));
     } else {
-        FSM_DBG("[DBG] SRC %pI4:%d\n", &pkt->flow.saddr4,
-                ntohs(pkt->flow.sport));
-        FSM_DBG("[DBG] DST %pI4:%d\n", &pkt->flow.daddr4,
-                ntohs(pkt->flow.dport));
+        FSM_TRACE_HDR_PRINTF("[HDR] SRC %pI4:%d\n", &pkt->flow.saddr4,
+                             ntohs(pkt->flow.sport));
+        FSM_TRACE_HDR_PRINTF("[HDR] DST %pI4:%d\n", &pkt->flow.daddr4,
+                             ntohs(pkt->flow.dport));
     }
-    FSM_DBG("[DBG] SHW %02x:%02x:%02x\n", pkt->smac[0], pkt->smac[1],
-            pkt->smac[2]);
-    FSM_DBG("[DBG]     %02x:%02x:%02x\n", pkt->smac[3], pkt->smac[4],
-            pkt->smac[5]);
-    FSM_DBG("[DBG] DHW %02x:%02x:%02x\n", pkt->dmac[0], pkt->dmac[1],
-            pkt->dmac[2]);
-    FSM_DBG("[DBG]     %02x:%02x:%02x\n", pkt->dmac[3], pkt->dmac[4],
-            pkt->dmac[5]);
+    FSM_TRACE_HDR_PRINTF("[HDR] SHW %02x:%02x:%02x\n", pkt->smac[0],
+                         pkt->smac[1], pkt->smac[2]);
+    FSM_TRACE_HDR_PRINTF("[HDR]     %02x:%02x:%02x\n", pkt->smac[3],
+                         pkt->smac[4], pkt->smac[5]);
+    FSM_TRACE_HDR_PRINTF("[HDR] DHW %02x:%02x:%02x\n", pkt->dmac[0],
+                         pkt->dmac[1], pkt->dmac[2]);
+    FSM_TRACE_HDR_PRINTF("[HDR]     %02x:%02x:%02x\n", pkt->dmac[3],
+                         pkt->dmac[4], pkt->dmac[5]);
     void *dend = XPKT_PTR(XPKT_DATA_END(skb));
     struct tcphdr *t = XPKT_PTR_ADD(XPKT_DATA(skb), pkt->l4_off);
     if ((void *)(t + 1) > dend) {
         return -1;
     }
-    FSM_DBG("[DBG] SYN: %d ACK: %d FIN: %d\n", t->syn, t->ack, t->fin);
-    FSM_DBG("[DBG] SEQ: %u ACK_SEQ: %u IFI: %u\n", ntohl(t->seq),
-            ntohl(t->ack_seq), skb->ifindex);
+    FSM_TRACE_HDR_PRINTF("[HDR] SYN: %d ACK: %d FIN: %d\n", t->syn, t->ack,
+                         t->fin);
+    FSM_TRACE_HDR_PRINTF("[HDR] SEQ: %u ACK_SEQ: %u IFI: %u\n", ntohl(t->seq),
+                         ntohl(t->ack_seq), skb->ifindex);
+#endif
 
     return TC_ACT_OK;
 
@@ -559,9 +586,11 @@ int flow(skb_t *skb)
     }
 
     __s8 trans = xpkt_flow_proc(skb, pkt, cfg, flags, xflow, xopt);
+#ifndef FSM_TRACE_HDR_OFF
     if (flags->trace_hdr_on) {
-        FSM_DBG("[DBG] TRANS: %d\n", trans);
+        FSM_TRACE_HDR_PRINTF("[HDR] TRANS: %d\n", trans);
     }
+#endif
 
     return dispatch(skb, pkt, cfg, flags);
 #else

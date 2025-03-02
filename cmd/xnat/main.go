@@ -31,6 +31,7 @@ func newRootCmd(args []string) *cobra.Command {
 		cli.NewNetnsCmd(),
 		cli.NewConvCmd(),
 		cli.NewIFaceCmd(),
+		cli.NewArpCmd(),
 	)
 
 	_ = cmd.PersistentFlags().Parse(args)
