@@ -2,6 +2,7 @@ package maps
 
 import (
 	"fmt"
+	"unsafe"
 
 	"github.com/cilium/ebpf"
 
@@ -64,11 +65,10 @@ func ShowProgEntries() {
 
 	var progKey ProgKey
 	var progFD ProgVal
-
 	it := progMap.Iterate()
 	first := true
 	fmt.Println(`[`)
-	for it.Next(&progKey, &progFD) {
+	for it.Next(unsafe.Pointer(&progKey), unsafe.Pointer(&progFD)) {
 		if first {
 			first = false
 		} else {

@@ -60,9 +60,11 @@ xpkt_acl_check(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags)
         XADDR_COPY(key.addr, pkt->flow.daddr);
         key.port = pkt->flow.dport;
     } else {
-        if (flags->trace_acl_on || flags->trace_nat_on) {
-            FSM_DBG("[DBG] ACL DENY\n");
+#ifndef FSM_TRACE_ACL_OFF
+        if (flags->trace_acl_on) {
+            FSM_TRACE_ACL_PRINTF("[ACL] ACL DENY\n");
         }
+#endif
         xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
         return ACL_DENY;
     }
@@ -81,15 +83,19 @@ xpkt_acl_check(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags)
     }
 
     if (op->acl > ACL_AUDIT) {
-        if (flags->trace_acl_on || flags->trace_nat_on) {
-            FSM_DBG("[DBG] ACL TRUSTED\n");
+#ifndef FSM_TRACE_ACL_OFF
+        if (flags->trace_acl_on) {
+            FSM_TRACE_ACL_PRINTF("[ACL] ACL TRUSTED\n");
         }
+#endif
         xpkt_tail_call(skb, pkt, FSM_CNI_PASS_PROG_ID);
         return ACL_TRUSTED;
     } else if (op->acl < ACL_AUDIT) {
-        if (flags->trace_acl_on || flags->trace_nat_on) {
-            FSM_DBG("[DBG] ACL DENY\n");
+#ifndef FSM_TRACE_ACL_OFF
+        if (flags->trace_acl_on) {
+            FSM_TRACE_ACL_PRINTF("[ACL] ACL DENY\n");
         }
+#endif
         xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
         return ACL_DENY;
     }
@@ -242,9 +248,12 @@ xpkt_flow_init_reverse_op(xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
     rop->do_trans = 1;
 
     bpf_map_update_elem(fsm_xflow, &rflow, rop, BPF_ANY);
+
+#ifndef FSM_TRACE_FLOW_OFF
     if (flags->trace_flow_on) {
-        FSM_DBG_FLOW("INSERT FLOW-R:", &rflow, pkt->v6);
+        FSM_TRACE_FLOW("INSERT FLOW-R:", &rflow, pkt->v6);
     }
+#endif
 
     return 1;
 }
@@ -258,9 +267,11 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
     int idx = 0;
     int do_nat = 0;
 
+#ifndef FSM_TRACE_FLOW_OFF
     if (flags->trace_flow_on) {
-        FSM_DBG("[DBG] FLOW INIT\n");
+        FSM_TRACE_FLOW_PRINTF("[FLW] FLOW INIT\n");
     }
+#endif
 
     flow = &pkt->flow;
     op = bpf_map_lookup_elem(&fsm_xflop, &idx);
@@ -272,11 +283,19 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
     if (pkt->tc_dir == TC_DIR_EGR) {
         op->flow_dir = FLOW_DIR_C2S;
         op->do_trans = 1;
-        op->nfs[TC_DIR_IGR] = NF_DENY;
-        op->nfs[TC_DIR_EGR] = NF_XNAT | NF_ALLOW;
-        XMAC_COPY(op->xnat.xmac, pkt->smac);
-        XADDR_COPY(op->xnat.xaddr, flow->saddr);
-        op->xnat.xport = flow->sport;
+        if (pkt->flow.sys == SYS_MESH) {
+            op->nfs[TC_DIR_IGR] = NF_DENY;
+            op->nfs[TC_DIR_EGR] = NF_XNAT | NF_ALLOW;
+            XMAC_COPY(op->xnat.xmac, pkt->smac);
+            XADDR_COPY(op->xnat.xaddr, flow->saddr);
+            op->xnat.xport = flow->sport;
+        } else if (pkt->flow.sys == SYS_E4LB) {
+            op->nfs[TC_DIR_IGR] = NF_XNAT | NF_ALLOW;
+            op->nfs[TC_DIR_EGR] = NF_XNAT | NF_ALLOW;
+            XMAC_COPY(op->xnat.xmac, pkt->dmac);
+            XADDR_COPY(op->xnat.xaddr, flow->daddr);
+            op->xnat.xport = flow->sport;
+        }
     } else if (pkt->tc_dir == TC_DIR_IGR) {
         op->flow_dir = FLOW_DIR_C2S;
         op->do_trans = 1;
@@ -312,9 +331,13 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
             } else {
                 pkt->nfs[TC_DIR_IGR] = NF_DENY;
                 pkt->nfs[TC_DIR_EGR] = NF_DENY;
+
+#ifndef FSM_TRACE_NAT_OFF
                 if (flags->trace_nat_on) {
-                    FSM_DBG("[DBG] DROP BY NO NAT\n");
+                    FSM_TRACE_NAT_PRINTF("[NAT] DROP BY NO NAT\n");
                 }
+#endif
+
                 xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
             }
             return 0;
@@ -339,9 +362,13 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
             } else {
                 pkt->nfs[TC_DIR_IGR] = NF_DENY;
                 pkt->nfs[TC_DIR_EGR] = NF_DENY;
+
+#ifndef FSM_TRACE_NAT_OFF
                 if (flags->trace_nat_on) {
-                    FSM_DBG("[DBG] DROP BY NO NAT\n");
+                    FSM_TRACE_NAT_PRINTF("[NAT] DROP BY NO NAT\n");
                 }
+#endif
+
                 xpkt_tail_call(skb, pkt, FSM_CNI_DROP_PROG_ID);
             }
             return 0;
@@ -368,9 +395,11 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
             opt.proto = flow->proto;
             opt.v6 = flow->v6;
             bpf_map_update_elem(fsm_xopt, &opt, flow, BPF_ANY);
+#ifndef FSM_TRACE_OPT_OFF
             if (flags->trace_opt_on) {
-                FSM_DBG_NAT_OPT("INSERT XNAT OPT:", &opt, flow, pkt->v6);
+                FSM_TRACE_OPT("INSERT XNAT OPT:", &opt, flow, pkt->v6);
             }
+#endif
         }
     } else if (flags->udp_nat_opt_on && pkt->flow.proto == IPPROTO_UDP) {
         if (XFLAG_HAS(op->nfs[TC_DIR_EGR], NF_XNAT)) {
@@ -392,16 +421,21 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
             opt.proto = flow->proto;
             opt.v6 = flow->v6;
             bpf_map_update_elem(fsm_xopt, &opt, flow, BPF_ANY);
+#ifndef FSM_TRACE_OPT_OFF
             if (flags->trace_opt_on) {
-                FSM_DBG_NAT_OPT("INSERT XNAT OPT:", &opt, flow, pkt->v6);
+                FSM_TRACE_OPT("INSERT XNAT OPT:", &opt, flow, pkt->v6);
             }
+#endif
         }
     }
 
     bpf_map_update_elem(fsm_xflow, flow, op, BPF_ANY);
+
+#ifndef FSM_TRACE_FLOW_OFF
     if (flags->trace_flow_on) {
-        FSM_DBG_FLOW("INSERT FLOW:", flow, pkt->v6);
+        FSM_TRACE_FLOW("INSERT FLOW:", flow, pkt->v6);
     }
+#endif
 
     return xpkt_flow_init_reverse_op(pkt, cfg, flags, fsm_xflow, flow, op);
 }
@@ -419,28 +453,31 @@ xpkt_flow_proc(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
     __s8 trans = TRANS_ERR;
 
     XFLOW_COPY(&flow, &pkt->flow);
+
+#ifndef FSM_TRACE_FLOW_OFF
     if (flags->trace_flow_on) {
-        FSM_DBG_FLOW("FLOW:", &flow, pkt->v6);
+        FSM_TRACE_FLOW("FLOW:", &flow, pkt->v6);
     }
+#endif
 
     op = bpf_map_lookup_elem(fsm_xflow, &flow);
     if (op == NULL) {
-        if (pkt->flow.sys == SYS_E4LB) {
-            if (pkt->tc_dir == TC_DIR_EGR) {
-                if (pkt->flow.proto == IPPROTO_TCP) {
-                    if (flags->tcp_proto_allow_nat_escape) {
-                        pkt->nfs[TC_DIR_EGR] = NF_ALLOW;
-                        return TRANS_NON;
-                    }
-                } else if (pkt->flow.proto == IPPROTO_UDP) {
-                    if (flags->udp_proto_allow_nat_escape) {
-                        pkt->nfs[TC_DIR_EGR] = NF_ALLOW;
-                        return TRANS_NON;
+        if (!xpkt_flow_init_ops(skb, pkt, cfg, flags, fsm_xflow, fsm_xopt)) {
+            if (pkt->flow.sys == SYS_E4LB) {
+                if (pkt->tc_dir == TC_DIR_EGR) {
+                    if (pkt->flow.proto == IPPROTO_TCP) {
+                        if (flags->tcp_proto_allow_nat_escape) {
+                            pkt->nfs[TC_DIR_EGR] = NF_ALLOW;
+                            return TRANS_NON;
+                        }
+                    } else if (pkt->flow.proto == IPPROTO_UDP) {
+                        if (flags->udp_proto_allow_nat_escape) {
+                            pkt->nfs[TC_DIR_EGR] = NF_ALLOW;
+                            return TRANS_NON;
+                        }
                     }
                 }
             }
-        }
-        if (!xpkt_flow_init_ops(skb, pkt, cfg, flags, fsm_xflow, fsm_xopt)) {
             return trans;
         }
         op = bpf_map_lookup_elem(fsm_xflow, &flow);
@@ -475,7 +512,6 @@ xpkt_flow_proc(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
         }
 
         op->atime = bpf_ktime_get_ns();
-
         return TRANS_EST;
     }
 
@@ -503,9 +539,11 @@ flow_track:
         rflow.proto = flow.proto;
         rflow.v6 = flow.v6;
 
+#ifndef FSM_TRACE_FLOW_OFF
         if (flags->trace_flow_on) {
-            FSM_DBG_FLOW("FOUND FLOW-R:", &rflow, pkt->v6);
+            FSM_TRACE_FLOW("FOUND FLOW-R:", &rflow, pkt->v6);
         }
+#endif
 
         rop = bpf_map_lookup_elem(fsm_xflow, &rflow);
     }
@@ -518,9 +556,12 @@ flow_track:
         } else {
             trans = xpkt_trans_proc(skb, pkt, rop, op, FLOW_DIR_S2C);
         }
+
+#ifndef FSM_TRACE_FLOW_OFF
         if (flags->trace_flow_on) {
-            FSM_DBG("[DBG] TRANS TO: %d\n", trans);
+            FSM_TRACE_FLOW_PRINTF("[FLW] TRANS TO: %d\n", trans);
         }
+#endif
 
         if (trans == TRANS_EST) {
             op->do_trans = 0;
@@ -551,10 +592,12 @@ flow_track:
                     opt.proto = rflow.proto;
                     opt.v6 = rflow.v6;
                     bpf_map_delete_elem(fsm_xopt, &opt);
+#ifndef FSM_TRACE_OPT_OFF
                     if (flags->trace_opt_on) {
-                        FSM_DBG_NAT_OPT("DELETE XNAT OPT:", &opt, &rflow,
-                                        pkt->v6);
+                        FSM_TRACE_OPT("DELETE XNAT OPT:", &opt, &rflow,
+                                      pkt->v6);
                     }
+#endif
                 }
                 if (XFLAG_HAS(op->nfs[TC_DIR_EGR], NF_XNAT)) {
                     opt.sys = pkt->flow.sys;
@@ -573,10 +616,11 @@ flow_track:
                     opt.proto = flow.proto;
                     opt.v6 = flow.v6;
                     bpf_map_delete_elem(fsm_xopt, &opt);
+#ifndef FSM_TRACE_OPT_OFF
                     if (flags->trace_opt_on) {
-                        FSM_DBG_NAT_OPT("DELETE XNAT OPT:", &opt, &flow,
-                                        pkt->v6);
+                        FSM_TRACE_OPT("DELETE XNAT OPT:", &opt, &flow, pkt->v6);
                     }
+#endif
                 }
             } else if (flags->udp_nat_opt_on &&
                        pkt->flow.proto == IPPROTO_UDP) {
@@ -597,10 +641,12 @@ flow_track:
                     opt.proto = rflow.proto;
                     opt.v6 = rflow.v6;
                     bpf_map_delete_elem(fsm_xopt, &opt);
+#ifndef FSM_TRACE_OPT_OFF
                     if (flags->trace_opt_on) {
-                        FSM_DBG_NAT_OPT("DELETE XNAT OPT:", &opt, &rflow,
-                                        pkt->v6);
+                        FSM_TRACE_OPT("DELETE XNAT OPT:", &opt, &rflow,
+                                      pkt->v6);
                     }
+#endif
                 }
                 if (XFLAG_HAS(op->nfs[TC_DIR_EGR], NF_XNAT)) {
                     opt.sys = pkt->flow.sys;
@@ -619,19 +665,23 @@ flow_track:
                     opt.proto = flow.proto;
                     opt.v6 = flow.v6;
                     bpf_map_delete_elem(fsm_xopt, &opt);
+#ifndef FSM_TRACE_OPT_OFF
                     if (flags->trace_opt_on) {
-                        FSM_DBG_NAT_OPT("DELETE XNAT OPT:", &opt, &flow,
-                                        pkt->v6);
+                        FSM_TRACE_OPT("DELETE XNAT OPT:", &opt, &flow, pkt->v6);
                     }
+#endif
                 }
             }
             bpf_map_delete_elem(fsm_xflow, &rflow);
             bpf_map_delete_elem(fsm_xflow, &flow);
+
+#ifndef FSM_TRACE_FLOW_OFF
             if (flags->trace_flow_on) {
-                FSM_DBG_FLOW("DELETE FLOW-R:", &rflow, pkt->v6);
-                FSM_DBG_FLOW("DELETE FLOW:", &flow, pkt->v6);
-                FSM_DBG("[DBG] DELETE FLOWS\n");
+                FSM_TRACE_FLOW("DELETE FLOW-R:", &rflow, pkt->v6);
+                FSM_TRACE_FLOW("DELETE FLOW:", &flow, pkt->v6);
+                FSM_TRACE_FLOW_PRINTF("[FLW] DELETE FLOWS\n");
             }
+#endif
         }
     }
 
