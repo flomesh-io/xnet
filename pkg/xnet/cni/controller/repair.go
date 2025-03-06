@@ -13,7 +13,7 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/volume"
 )
 
-func (s *server) CheckAndRepairPods() {
+func (s *server) checkAndRepairPods() {
 	var repairFailPods map[string]string
 	for {
 		repairFailPods = s.doCheckAndRepairPods()
@@ -79,7 +79,7 @@ func (s *server) doCheckAndRepairPods() map[string]string {
 	return monitoredPodsByAddr
 }
 
-func (s *server) CheckAndResetPods() {
+func (s *server) checkAndResetPods() {
 	var resetFailPods map[string]string
 	for {
 		resetFailPods = s.doCheckAndResetPods()

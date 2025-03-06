@@ -14,6 +14,7 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
+	"github.com/flomesh-io/xnet/pkg/xnet/util"
 )
 
 var (
@@ -30,6 +31,9 @@ func stringPtr(v string) *string {
 
 func getBPFObjFD(objName string) (int, error) {
 	pinnedFile := fs.GetPinningFile(objName)
+	if exists := util.Exists(pinnedFile); !exists {
+		pinnedFile = fs.GetPinningFile(strings.TrimPrefix(objName, bpf.FSM_PROG_NAME_PREFIX))
+	}
 	if pinnedProg, progErr := ebpf.LoadPinnedProgram(pinnedFile, &ebpf.LoadPinOptions{}); progErr == nil {
 		return pinnedProg.FD(), nil
 	} else {

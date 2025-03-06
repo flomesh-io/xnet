@@ -16,15 +16,16 @@ import (
 )
 
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(informerCollection *informers.InformerCollection, msgBroker *messaging.Broker) Controller {
-	return newClient(informerCollection, msgBroker)
+func NewKubernetesController(informerCollection *informers.InformerCollection, msgBroker *messaging.Broker, meshExcludeNamespaces []string) Controller {
+	return newClient(informerCollection, msgBroker, meshExcludeNamespaces)
 }
 
-func newClient(informerCollection *informers.InformerCollection, msgBroker *messaging.Broker) *client {
+func newClient(informerCollection *informers.InformerCollection, msgBroker *messaging.Broker, meshExcludeNamespaces []string) *client {
 	// Initialize client object
 	c := &client{
-		informers: informerCollection,
-		msgBroker: msgBroker,
+		informers:             informerCollection,
+		msgBroker:             msgBroker,
+		meshExcludeNamespaces: meshExcludeNamespaces,
 	}
 	c.initSidecarPodMonitor()
 	return c
@@ -32,6 +33,11 @@ func newClient(informerCollection *informers.InformerCollection, msgBroker *mess
 
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
 func (c *client) IsMonitoredNamespace(namespace string) bool {
+	if len(c.meshExcludeNamespaces) > 0 {
+		if slices.Contains(c.meshExcludeNamespaces, namespace) {
+			return false
+		}
+	}
 	return c.informers.IsMonitoredNamespace(namespace)
 }
 
@@ -63,6 +69,8 @@ func (c *client) IsMonitoredPod(pod string, namespace string) bool {
 	if exists && err == nil {
 		podIns := podIf.(*corev1.Pod)
 		if _, found := podIns.Labels[constants.SidecarUniqueIDLabelName]; found {
+			return true
+		} else {
 			return c.IsMonitoredNamespace(podIns.Namespace)
 		}
 	}

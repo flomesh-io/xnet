@@ -14,8 +14,9 @@ var (
 
 // client is the type used to represent the k8s client for the native k8s resources
 type client struct {
-	informers *informers.InformerCollection
-	msgBroker *messaging.Broker
+	informers             *informers.InformerCollection
+	msgBroker             *messaging.Broker
+	meshExcludeNamespaces []string
 }
 
 // Controller is the controller interface for K8s services

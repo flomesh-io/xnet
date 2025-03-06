@@ -10,6 +10,7 @@
 #include <linux/icmp.h>
 #include <linux/icmpv6.h>
 
+#include "bpf_section.h"
 #include "bpf_macros.h"
 #include "bpf_xtypes.h"
 #include "bpf_xmaps.h"
@@ -20,13 +21,13 @@
 
 char __LICENSE[] SEC("license") = "GPL";
 
-SEC("classifier/pass")
+SEC(TC_PASS)
 int pass(skb_t *skb)
 {
     return TC_ACT_OK;
 }
 
-SEC("classifier/drop")
+SEC(TC_DROP)
 int drop(skb_t *skb)
 {
     return TC_ACT_SHOT;
@@ -535,7 +536,7 @@ decode_fail:
     return TC_ACT_SHOT;
 }
 
-SEC("classifier/flow")
+SEC(TC_FLOW)
 int flow(skb_t *skb)
 {
 #ifdef BPF_LARGE_INSNS_OFF
@@ -594,11 +595,11 @@ int flow(skb_t *skb)
 
     return dispatch(skb, pkt, cfg, flags);
 #else
-    return TC_ACT_SHOT;
+    return TC_ACT_OK;
 #endif
 }
 
-SEC("classifier/noop/ingress")
+SEC(TC_NOOP_INGRESS)
 int noop_ingress(skb_t *skb)
 {
     int z = 0;
@@ -615,7 +616,7 @@ int noop_ingress(skb_t *skb)
     return decode(skb, pkt);
 }
 
-SEC("classifier/noop/egress")
+SEC(TC_NOOP_EGRESS)
 int noop_egress(skb_t *skb)
 {
     int z = 0;
@@ -632,7 +633,7 @@ int noop_egress(skb_t *skb)
     return decode(skb, pkt);
 }
 
-SEC("classifier/mesh/ingress")
+SEC(TC_MESH_INGRESS)
 int mesh_ingress(skb_t *skb)
 {
     int z = 0;
@@ -649,7 +650,7 @@ int mesh_ingress(skb_t *skb)
     return process(skb, pkt);
 }
 
-SEC("classifier/mesh/egress")
+SEC(TC_MESH_EGRESS)
 int mesh_egress(skb_t *skb)
 {
     int z = 0;
@@ -666,7 +667,7 @@ int mesh_egress(skb_t *skb)
     return process(skb, pkt);
 }
 
-SEC("classifier/e4lb/ingress")
+SEC(TC_E4LB_INGRESS)
 int e4lb_ingress(skb_t *skb)
 {
     int z = 0;
@@ -683,7 +684,7 @@ int e4lb_ingress(skb_t *skb)
     return process(skb, pkt);
 }
 
-SEC("classifier/e4lb/egress")
+SEC(TC_E4LB_EGRESS)
 int e4lb_egress(skb_t *skb)
 {
     int z = 0;

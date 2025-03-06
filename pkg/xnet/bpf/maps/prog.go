@@ -2,12 +2,14 @@ package maps
 
 import (
 	"fmt"
+	"strings"
 	"unsafe"
 
 	"github.com/cilium/ebpf"
 
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
+	"github.com/flomesh-io/xnet/pkg/xnet/util"
 )
 
 func InitProgEntries() error {
@@ -40,6 +42,9 @@ func InitProgEntries() error {
 
 	for _, prog := range progs {
 		pinnedFile = fs.GetPinningFile(prog.progName)
+		if exists := util.Exists(pinnedFile); !exists {
+			pinnedFile = fs.GetPinningFile(strings.TrimPrefix(prog.progName, bpf.FSM_PROG_NAME_PREFIX))
+		}
 		pinnedProg, progErr := ebpf.LoadPinnedProgram(pinnedFile, &ebpf.LoadPinOptions{})
 		if progErr != nil {
 			return progErr

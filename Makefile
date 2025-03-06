@@ -1,6 +1,6 @@
 #!make
 
-CTR_REGISTRY ?= cybwan
+CTR_REGISTRY ?= flomesh
 CTR_TAG      ?= latest
 
 DOCKER_BUILDX_PLATFORM ?= linux/amd64
@@ -21,16 +21,28 @@ buildx-context:
 
 .PHONY: docker-build-xnet
 docker-build-xnet:
-	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:$(CTR_TAG) -f Dockerfile --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:$(CTR_TAG) -f dockerfiles/Dockerfile --build-arg LDFLAGS=$(LDFLAGS) .
 
-.PHONY: docker-build-bclinux-euler-22.10
-docker-build-bclinux-euler-22.10: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
-docker-build-bclinux-euler-22.10:
-	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:$(CTR_TAG) -f Dockerfile.bclinux.euler.22.10 --build-arg LDFLAGS=$(LDFLAGS) .
+.PHONY: docker-build-xnet-ubuntu-20.04
+docker-build-xnet-ubuntu-20.04:
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-20.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu.20.04 --build-arg LDFLAGS=$(LDFLAGS) .
 
+.PHONY: docker-build-xnet-ubuntu-22.04
+docker-build-xnet-ubuntu-22.04:
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-22.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu.22.04 --build-arg LDFLAGS=$(LDFLAGS) .
 
-TARGETS = xnet
+.PHONY: docker-build-xnet-ubuntu-24.04
+docker-build-xnet-ubuntu-24.04:
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-24.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu.24.04 --build-arg LDFLAGS=$(LDFLAGS) .
+
+.PHONY: docker-build-xnet-openeuler-22.03
+docker-build-bclinux-xnet-openeuler-22.03:
+docker-build-bclinux-xnet-openeuler-22.03:
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:openeuler-22.03-$(CTR_TAG) -f dockerfiles/Dockerfile.openeuler.22.03 --build-arg LDFLAGS=$(LDFLAGS) .
+
+TARGETS = xnet xnet-ubuntu-20.04 xnet-ubuntu-22.04 xnet-ubuntu-24.04
 DOCKER_TARGETS = $(addprefix docker-build-, $(TARGETS))
+IMAGE_TARGETS = xnet- xnet-ubuntu-20.04- xnet-ubuntu-22.04- xnet-ubuntu-24.04-
 
 $(foreach target,$(TARGETS) ,$(eval docker-build-$(target): buildx-context))
 
@@ -48,15 +60,15 @@ trivy-ci-setup:
 	echo $$(pwd) >> $(GITHUB_PATH)
 
 # Show all vulnerabilities in logs
-trivy-scan-verbose-%: NAME=$(@:trivy-scan-verbose-%=%)
+trivy-scan-verbose-%: TAG_PREFIX=$(@:trivy-scan-verbose-xnet-%=%)
 trivy-scan-verbose-%:
 	trivy image --scanners vuln,secret \
 	  --pkg-types os \
 	  --db-repository aquasec/trivy-db:2 \
-	  "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
+	  "$(CTR_REGISTRY)/xnet:$(TAG_PREFIX)$(CTR_TAG)"
 
 # Exit if vulnerability exists
-trivy-scan-fail-%: NAME=$(@:trivy-scan-fail-%=%)
+trivy-scan-fail-%: TAG_PREFIX=$(@:trivy-scan-fail-xnet-%=%)
 trivy-scan-fail-%:
 	trivy image --exit-code 1 \
 	  --ignore-unfixed \
@@ -65,11 +77,11 @@ trivy-scan-fail-%:
 	  --scanners vuln,secret \
 	  --pkg-types os \
 	  --db-repository aquasec/trivy-db:2 \
-	  "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
+	  "$(CTR_REGISTRY)/xnet:$(TAG_PREFIX)$(CTR_TAG)"
 
 .PHONY: trivy-scan-images trivy-scan-images-fail trivy-scan-images-verbose
-trivy-scan-images-verbose: $(addprefix trivy-scan-verbose-, $(TARGETS))
-trivy-scan-images-fail: $(addprefix trivy-scan-fail-, $(TARGETS))
+trivy-scan-images-verbose: $(addprefix trivy-scan-verbose-, $(IMAGE_TARGETS))
+trivy-scan-images-fail: $(addprefix trivy-scan-fail-, $(IMAGE_TARGETS))
 trivy-scan-images: trivy-scan-images-verbose trivy-scan-images-fail
 
 .PHONY: release
