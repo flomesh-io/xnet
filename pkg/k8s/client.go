@@ -34,9 +34,7 @@ func newClient(informerCollection *informers.InformerCollection, msgBroker *mess
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
 func (c *client) IsMonitoredNamespace(namespace string) bool {
 	if len(c.meshExcludeNamespaces) > 0 {
-		if slices.Contains(c.meshExcludeNamespaces, namespace) {
-			return false
-		}
+		return !slices.Contains(c.meshExcludeNamespaces, namespace)
 	}
 	return c.informers.IsMonitoredNamespace(namespace)
 }
@@ -65,6 +63,9 @@ func (c *client) GetNamespace(namespace string) *corev1.Namespace {
 }
 
 func (c *client) IsMonitoredPod(pod string, namespace string) bool {
+	if len(c.meshExcludeNamespaces) > 0 {
+		return !slices.Contains(c.meshExcludeNamespaces, namespace)
+	}
 	podIf, exists, err := c.informers.GetByKey(informers.InformerKeyPod, fmt.Sprintf("%s/%s", namespace, pod))
 	if exists && err == nil {
 		podIns := podIf.(*corev1.Pod)
@@ -77,28 +78,36 @@ func (c *client) IsMonitoredPod(pod string, namespace string) bool {
 	return false
 }
 
-// ListMonitoredPods returns the pods monitored by the mesh
-func (c *client) ListMonitoredPods() []*corev1.Pod {
+// ListAllPods returns all pods
+func (c *client) ListAllPods() []*corev1.Pod {
 	var pods []*corev1.Pod
 	for _, podInterface := range c.informers.List(informers.InformerKeyPod) {
 		podIns := podInterface.(*corev1.Pod)
-		if !c.IsMonitoredNamespace(podIns.Namespace) {
-			continue
-		}
-		if _, found := podIns.Labels[constants.SidecarUniqueIDLabelName]; !found {
-			continue
-		}
 		pods = append(pods, podIns)
 	}
 	return pods
 }
 
-func (c *client) GetMonitoredPod(pod, namespace string) *corev1.Pod {
-	podIf, exists, err := c.informers.GetByKey(informers.InformerKeyPod, fmt.Sprintf("%s/%s", namespace, pod))
-	if exists && err == nil {
-		return podIf.(*corev1.Pod)
+// ListMonitoredPods returns the pods monitored by the mesh
+func (c *client) ListMonitoredPods() []*corev1.Pod {
+	var pods []*corev1.Pod
+	for _, podInterface := range c.informers.List(informers.InformerKeyPod) {
+		podIns := podInterface.(*corev1.Pod)
+		if len(c.meshExcludeNamespaces) == 0 {
+			if !c.IsMonitoredNamespace(podIns.Namespace) {
+				continue
+			}
+			if _, found := podIns.Labels[constants.SidecarUniqueIDLabelName]; !found {
+				continue
+			}
+		} else {
+			if !c.IsMonitoredNamespace(podIns.Namespace) {
+				continue
+			}
+		}
+		pods = append(pods, podIns)
 	}
-	return nil
+	return pods
 }
 
 // ListSidecarPods returns the gateway pods as sidecar.

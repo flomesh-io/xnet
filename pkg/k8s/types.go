@@ -34,11 +34,11 @@ type Controller interface {
 
 	IsMonitoredPod(pod string, namespace string) bool
 
+	// ListAllPods returns all pods
+	ListAllPods() []*corev1.Pod
+
 	// ListMonitoredPods returns the pods monitored by the mesh
 	ListMonitoredPods() []*corev1.Pod
-
-	// GetMonitoredPod returns k8s pod present in cache
-	GetMonitoredPod(pod string, namespace string) *corev1.Pod
 
 	// ListSidecarPods returns the gateway pods as sidecar.
 	ListSidecarPods() []*corev1.Pod
