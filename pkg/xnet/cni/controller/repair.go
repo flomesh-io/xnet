@@ -28,11 +28,17 @@ func (s *server) checkAndRepairPods() {
 }
 
 func (s *server) doCheckAndRepairPods() map[string]string {
+	allPodsByAddr := make(map[string]string)
 	monitoredPodsByAddr := make(map[string]string)
 	pods := s.kubeController.ListMonitoredPods()
 	for _, pod := range pods {
 		monitoredPodsByAddr[pod.Status.PodIP] = fmt.Sprintf(`%s/%s`, pod.Namespace, pod.Name)
 	}
+	pods = s.kubeController.ListAllPods()
+	for _, pod := range pods {
+		allPodsByAddr[pod.Status.PodIP] = fmt.Sprintf(`%s/%s`, pod.Namespace, pod.Name)
+	}
+
 	netnsDirs := []string{volume.Netns.MountPath, volume.SysProc.MountPath}
 	for _, netnsDir := range netnsDirs {
 		rd, err := os.ReadDir(netnsDir)
@@ -65,6 +71,12 @@ func (s *server) doCheckAndRepairPods() map[string]string {
 										return fmt.Errorf(`%s %s`, pod, attachErr.Error())
 									}
 									delete(monitoredPodsByAddr, addrStr)
+									delete(allPodsByAddr, addrStr)
+								} else if pod, exists := allPodsByAddr[addrStr]; exists {
+									if detachErr := tc.DetachBPFProg(maps.SysMesh, iface.Name, true, true); detachErr != nil {
+										return fmt.Errorf(`%s %s`, pod, detachErr.Error())
+									}
+									delete(allPodsByAddr, addrStr)
 								}
 							}
 						}
@@ -94,10 +106,10 @@ func (s *server) checkAndResetPods() {
 }
 
 func (s *server) doCheckAndResetPods() map[string]string {
-	monitoredPodsByAddr := make(map[string]string)
-	pods := s.kubeController.ListMonitoredPods()
+	allPodsByAddr := make(map[string]string)
+	pods := s.kubeController.ListAllPods()
 	for _, pod := range pods {
-		monitoredPodsByAddr[pod.Status.PodIP] = fmt.Sprintf(`%s/%s`, pod.Namespace, pod.Name)
+		allPodsByAddr[pod.Status.PodIP] = fmt.Sprintf(`%s/%s`, pod.Namespace, pod.Name)
 	}
 	netnsDirs := []string{volume.Netns.MountPath, volume.SysProc.MountPath}
 	for _, netnsDir := range netnsDirs {
@@ -126,11 +138,11 @@ func (s *server) doCheckAndResetPods() map[string]string {
 							for _, addr := range addrs {
 								addrStr := addr.String()
 								addrStr = addrStr[0:strings.Index(addrStr, `/`)]
-								if pod, exists := monitoredPodsByAddr[addrStr]; exists {
+								if pod, exists := allPodsByAddr[addrStr]; exists {
 									if detachErr := tc.DetachBPFProg(maps.SysMesh, iface.Name, true, true); detachErr != nil {
 										return fmt.Errorf(`%s %s`, pod, detachErr.Error())
 									}
-									delete(monitoredPodsByAddr, addrStr)
+									delete(allPodsByAddr, addrStr)
 								}
 							}
 						}
@@ -142,5 +154,5 @@ func (s *server) doCheckAndResetPods() map[string]string {
 			}
 		}
 	}
-	return monitoredPodsByAddr
+	return allPodsByAddr
 }
