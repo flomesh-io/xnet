@@ -51,11 +51,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61
+          version: v1.64
           args: --allow-parallel-runners=true --tests=false --timeout=5m
 
   codegen:
@@ -68,7 +68,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - name: go mod tidy
         run: make -f Makefile.cli.mk go-mod-tidy
 
@@ -82,7 +82,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - name: Go Build
         run: make -f Makefile.cli.mk build-cli
 
@@ -99,7 +99,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
       - name: Build docker images
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
