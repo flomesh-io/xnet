@@ -13,6 +13,8 @@ const (
 	CreatePodURI = "/v1/cni/create-pod"
 	// DeletePodURI is the route for cni plugin for deleting pod
 	DeletePodURI = "/v1/cni/delete-pod"
+
+	VersionURI = "/version"
 )
 
 func GetCniSock(runDir string) string {

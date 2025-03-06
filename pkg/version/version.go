@@ -2,6 +2,14 @@
 // via an HTTP request.
 package version
 
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/rs/zerolog/log"
+)
+
 // BuildDate is the date when the binary was built
 var BuildDate string
 
@@ -21,4 +29,24 @@ type Info struct {
 
 	// BuildDate is the build date of the FSM Controller.
 	BuildDate string `json:"build_date,omitempty"`
+}
+
+// GetInfo returns the version info
+func GetInfo() Info {
+	return Info{
+		Version:   Version,
+		BuildDate: BuildDate,
+		GitCommit: GitCommit,
+	}
+}
+
+// VersionHandler returns the version info
+func VersionHandler(w http.ResponseWriter, req *http.Request) {
+	versionInfo := GetInfo()
+
+	if jsonVersionInfo, err := json.Marshal(versionInfo); err != nil {
+		log.Error().Err(err).Msgf("Error marshaling version info struct: %+v", versionInfo)
+	} else {
+		_, _ = fmt.Fprint(w, string(jsonVersionInfo))
+	}
 }

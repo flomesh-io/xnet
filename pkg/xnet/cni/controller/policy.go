@@ -171,12 +171,12 @@ func (s *server) configMeshNatPolicies() {
 				if port.ContainerPort > 0 {
 					portLe := uint16(port.ContainerPort)
 					portBe := util.HostToNetShort(portLe)
-					if s.isTargetPort(port, s.filterPortInbound) {
+					if s.isTargetPort(port, s.meshFilterPortInbound) {
 						trustedAddrs[podAddrNb][portBe] = uint8(maps.ACL_AUDIT)
 						natPolicies[corev1Protos[port.Protocol]][maps.TC_DIR_IGR].natVal.
 							AddEp(podAddr, portLe, podMac, 0, 0, nil, true)
 					}
-					if s.isTargetPort(port, s.filterPortOutbound) {
+					if s.isTargetPort(port, s.meshFilterPortOutbound) {
 						trustedAddrs[podAddrNb][portBe] = uint8(maps.ACL_AUDIT)
 						natPolicies[corev1Protos[port.Protocol]][maps.TC_DIR_EGR].natVal.
 							AddEp(podAddr, portLe, podMac, 0, 0, nil, true)

@@ -10,26 +10,26 @@ ADD go.mod .
 ADD go.sum .
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg \
-    go mod download
+--mount=type=cache,target=/go/pkg \
+go mod download
 
 ADD . .
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg \
-    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xctr -ldflags "$LDFLAGS" ./cmd/xctr/*
+--mount=type=cache,target=/go/pkg \
+CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xctr -ldflags "$LDFLAGS" ./cmd/xctr/*
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg \
-    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xcni -ldflags "$LDFLAGS" ./cmd/xcni/*
+--mount=type=cache,target=/go/pkg \
+CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xcni -ldflags "$LDFLAGS" ./cmd/xcni/*
 RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg \
-    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xnat -ldflags "$LDFLAGS" ./cmd/xnat/*
+--mount=type=cache,target=/go/pkg \
+CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/xnat -ldflags "$LDFLAGS" ./cmd/xnat/*
 
 FROM openeuler/openeuler:22.03-lts-sp1 AS ccbuilder
 
 WORKDIR /app
 
-RUN yum install -y git make llvm clang libbpf-devel
+RUN yum install -y git make llvm clang libbpf-devel binutils-devel
 
 COPY kern kern
 COPY Makefile.cli.mk Makefile

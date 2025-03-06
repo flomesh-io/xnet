@@ -13,6 +13,7 @@ import (
 
 	"github.com/flomesh-io/xnet/pkg/k8s"
 	"github.com/flomesh-io/xnet/pkg/messaging"
+	"github.com/flomesh-io/xnet/pkg/version"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/load"
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
 	"github.com/flomesh-io/xnet/pkg/xnet/cni"
@@ -33,11 +34,14 @@ type server struct {
 
 	enableMesh bool
 
+	upgradeProg   bool
+	uninstallProg bool
+
 	unixSockPath string
 	cniReady     chan struct{}
 
-	filterPortInbound  string
-	filterPortOutbound string
+	meshFilterPortInbound  string
+	meshFilterPortOutbound string
 
 	flushTCPConnTrackCrontab     string
 	flushTCPConnTrackIdleSeconds int
@@ -54,8 +58,8 @@ type server struct {
 // the path this the unix path to listen.
 func NewServer(ctx context.Context,
 	kubeController k8s.Controller, msgBroker *messaging.Broker, stop chan struct{},
-	enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh bool, cniBridges []net.Interface,
-	filterPortInbound, filterPortOutbound string,
+	enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh, upgradeProg, uninstallProg bool, cniBridges []net.Interface,
+	meshFilterPortInbound, meshFilterPortOutbound string,
 	flushTCPConnTrackCrontab string, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize int,
 	flushUDPConnTrackCrontab string, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize int) Server {
 	return &server{
@@ -72,8 +76,11 @@ func NewServer(ctx context.Context,
 
 		enableMesh: enableMesh,
 
-		filterPortInbound:  filterPortInbound,
-		filterPortOutbound: filterPortOutbound,
+		upgradeProg:   upgradeProg,
+		uninstallProg: uninstallProg,
+
+		meshFilterPortInbound:  meshFilterPortInbound,
+		meshFilterPortOutbound: meshFilterPortOutbound,
 
 		flushTCPConnTrackCrontab:     flushTCPConnTrackCrontab,
 		flushTCPConnTrackIdleSeconds: flushTCPConnTrackIdleSeconds,
@@ -88,74 +95,88 @@ func NewServer(ctx context.Context,
 }
 
 func (s *server) Start() error {
-	load.ProgLoadAll()
-
-	if !s.enableE4lb {
+	if s.upgradeProg || s.uninstallProg {
 		e4lb.E4lbOff()
-	} else {
-		load.InitE4lbConfig(s.enableE4lbIPv4, s.enableE4lbIPv6)
-		e4lb.E4lbOn()
-	}
-
-	if !s.enableMesh {
 		s.uninstallCNI()
-		go s.CheckAndResetPods()
-	} else {
-		load.InitMeshConfig()
+		s.checkAndResetPods()
+		load.ProgUnload()
+	}
 
-		if err := os.RemoveAll(s.unixSockPath); err != nil {
-			log.Fatal().Msg(err.Error())
+	r := mux.NewRouter()
+	r.Path(cni.VersionURI).
+		Methods("GET").
+		HandlerFunc(version.VersionHandler)
+
+	if !s.uninstallProg {
+		load.ProgLoad()
+
+		if !s.enableE4lb {
+			e4lb.E4lbOff()
+		} else {
+			load.InitE4lbConfig(s.enableE4lbIPv4, s.enableE4lbIPv6)
+			e4lb.E4lbOn()
 		}
-		listen, err := net.Listen("unix", s.unixSockPath)
-		if err != nil {
-			log.Fatal().Msgf("listen error:%v", err)
-		}
 
-		r := mux.NewRouter()
-		r.Path(cni.CreatePodURI).
-			Methods("POST").
-			HandlerFunc(s.PodCreated)
+		if !s.enableMesh {
+			s.uninstallCNI()
+			go s.checkAndResetPods()
+		} else {
+			load.InitMeshConfig()
 
-		r.Path(cni.DeletePodURI).
-			Methods("POST").
-			HandlerFunc(s.PodDeleted)
+			r.Path(cni.CreatePodURI).
+				Methods("POST").
+				HandlerFunc(s.PodCreated)
 
-		ss := http.Server{
-			Handler:           r,
-			WriteTimeout:      10 * time.Second,
-			ReadTimeout:       10 * time.Second,
-			ReadHeaderTimeout: 10 * time.Second,
-		}
-		go func() {
-			go ss.Serve(listen) // nolint: errcheck
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT)
-			select {
-			case <-ch:
-				s.Stop()
-			case <-s.stop:
-				s.Stop()
+			r.Path(cni.DeletePodURI).
+				Methods("POST").
+				HandlerFunc(s.PodDeleted)
+
+			s.installCNI()
+
+			// wait for cni to be ready
+			<-s.cniReady
+
+			go s.broadcastListener()
+
+			go s.checkAndRepairPods()
+
+			if len(s.flushTCPConnTrackCrontab) > 0 && s.flushTCPConnTrackIdleSeconds > 0 && s.flushTCPConnTrackBatchSize > 0 {
+				go s.idleTCPConnTrackFlush(maps.SysMesh)
 			}
-			_ = ss.Shutdown(s.ctx)
-		}()
 
-		s.installCNI()
-
-		// wait for cni to be ready
-		<-s.cniReady
-
-		go s.broadcastListener()
-
-		go s.CheckAndRepairPods()
-
-		if len(s.flushTCPConnTrackCrontab) > 0 && s.flushTCPConnTrackIdleSeconds > 0 && s.flushTCPConnTrackBatchSize > 0 {
-			go s.idleTCPConnTrackFlush(maps.SysMesh)
-		}
-
-		if len(s.flushUDPConnTrackCrontab) > 0 && s.flushUDPConnTrackIdleSeconds > 0 && s.flushUDPConnTrackBatchSize > 0 {
-			go s.idleUDPConnTrackFlush(maps.SysMesh)
+			if len(s.flushUDPConnTrackCrontab) > 0 && s.flushUDPConnTrackIdleSeconds > 0 && s.flushUDPConnTrackBatchSize > 0 {
+				go s.idleUDPConnTrackFlush(maps.SysMesh)
+			}
 		}
 	}
+
+	if err := os.RemoveAll(s.unixSockPath); err != nil {
+		log.Fatal().Msg(err.Error())
+	}
+	listen, err := net.Listen("unix", s.unixSockPath)
+	if err != nil {
+		log.Fatal().Msgf("listen error:%v", err)
+	}
+
+	ss := http.Server{
+		Handler:           r,
+		WriteTimeout:      10 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		go ss.Serve(listen) // nolint: errcheck
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGABRT)
+		select {
+		case <-ch:
+			s.Stop()
+		case <-s.stop:
+			s.Stop()
+		}
+		_ = ss.Shutdown(s.ctx)
+	}()
 
 	return nil
 }

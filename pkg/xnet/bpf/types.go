@@ -25,6 +25,8 @@ const (
 )
 
 const (
+	FSM_PROG_NAME_PREFIX = `classifier_`
+
 	FSM_NOOP_INGRESS_PROG_NAME = `classifier_noop_ingress`
 	FSM_NOOP_EGRESS_PROG_NAME  = `classifier_noop_egress`
 

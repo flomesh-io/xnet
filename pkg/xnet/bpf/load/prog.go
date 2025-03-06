@@ -3,9 +3,9 @@ package load
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	bpftoolCmd            = `bpftool`
-	libbpf_strict_feature = `libbpf_strict`
+	bpftoolCmd = `bpftool`
 )
 
 var (
@@ -25,7 +24,7 @@ var (
 	}
 )
 
-func findBpftoolPath() (bpftoolBin string, legacy bool, err error) {
+func findBpftoolPath() (bpftoolBin string, err error) {
 	for _, binPath := range searchBinPaths {
 		bpftoolBin = path.Join(binPath, bpftoolCmd)
 		if exists := util.Exists(bpftoolBin); exists {
@@ -33,30 +32,19 @@ func findBpftoolPath() (bpftoolBin string, legacy bool, err error) {
 		}
 	}
 
-	if len(bpftoolBin) > 0 {
-		args := []string{
-			`version`,
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-		defer cancel()
-		cmd := exec.CommandContext(ctx, bpftoolBin, args...) // nolint gosec
-		if output, e := cmd.Output(); e == nil && len(output) > 0 {
-			if strings.Contains(string(output), libbpf_strict_feature) {
-				legacy = true
-			}
-		}
-	} else {
+	if len(bpftoolBin) == 0 {
 		err = fmt.Errorf("fail to find %s", bpftoolCmd)
 	}
 
 	return
 }
 
-func ProgLoadAll() {
+func ProgLoad() {
 	pinningDir := fs.GetPinningDir()
 	if exists := util.Exists(pinningDir); exists {
 		return
 	}
+
 	args := []string{
 		`prog`,
 		`loadall`,
@@ -66,14 +54,10 @@ func ProgLoadAll() {
 		pinningDir,
 	}
 
-	bpftoolBin, legacy, err := findBpftoolPath()
+	bpftoolBin, err := findBpftoolPath()
 	if err != nil {
 		log.Fatal().Err(err).Msgf("fail to find %s", bpftoolCmd)
 		return
-	}
-
-	if legacy {
-		args = append(args, `--legacy`)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
@@ -86,6 +70,15 @@ func ProgLoadAll() {
 	}
 
 	maps.InitProgEntries()
+}
+
+func ProgUnload() {
+	pinningDir := fs.GetPinningDir()
+	if exists := util.Exists(pinningDir); exists {
+		if err := os.RemoveAll(pinningDir); err != nil {
+			log.Error().Err(err).Msg("fail to uninstall")
+		}
+	}
 }
 
 func InitMeshConfig() {

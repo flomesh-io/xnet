@@ -35,8 +35,12 @@ var (
 	enableE4lbIPv4 bool
 	enableE4lbIPv6 bool
 
-	filterPortInbound  string
-	filterPortOutbound string
+	upgradeProg   bool
+	uninstallProg bool
+
+	meshFilterPortInbound  string
+	meshFilterPortOutbound string
+	meshExcludeNamespaces  []string
 
 	flushTCPConnTrackCrontab     string
 	flushTCPConnTrackIdleSeconds int
@@ -73,8 +77,12 @@ func init() {
 	flags.BoolVar(&enableE4lbIPv4, "enable-e4lb-ipv4", true, "Enable 4-layer load balance with ipv4")
 	flags.BoolVar(&enableE4lbIPv6, "enable-e4lb-ipv6", true, "Enable 4-layer load balance with ipv6")
 
-	flags.StringVar(&filterPortInbound, "filter-port-inbound", "inbound", "filter inbound port flag")
-	flags.StringVar(&filterPortOutbound, "filter-port-outbound", "outbound", "filter outbound port flag")
+	flags.BoolVar(&upgradeProg, "upgrade-prog", false, "Upgrade xnet prog")
+	flags.BoolVar(&uninstallProg, "uninstall-prog", false, "Uninstall xnet prog")
+
+	flags.StringVar(&meshFilterPortInbound, "mesh-filter-port-inbound", "inbound", "mesh filter inbound port flag")
+	flags.StringVar(&meshFilterPortOutbound, "mesh-filter-port-outbound", "outbound", "mesh filter outbound port flag")
+	flags.StringArrayVar(&meshExcludeNamespaces, "mesh-exclude-namespace", nil, "mesh exclude namespaces")
 
 	flags.StringVar(&flushTCPConnTrackCrontab, "flush-tcp-conn-track-cron-tab", "30 3 */1 * *", "flush tcp conn track cron tab")
 	flags.IntVar(&flushTCPConnTrackIdleSeconds, "flush-tcp-conn-track-idle-seconds", 3600, "flush tcp flow idle seconds")
@@ -168,7 +176,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Error creating informer collection")
 	}
 
-	kubeController := k8s.NewKubernetesController(informerCollection, msgBroker)
+	kubeController := k8s.NewKubernetesController(informerCollection, msgBroker, meshExcludeNamespaces)
 
 	cniBridges := make([]net.Interface, 0)
 	if len(cniIPv4BridgeName) > 0 {
@@ -187,8 +195,9 @@ func main() {
 	}
 
 	server := controller.NewServer(ctx, kubeController, msgBroker, stop,
-		enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh, cniBridges,
-		filterPortInbound, filterPortOutbound,
+		enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh,
+		upgradeProg, uninstallProg,
+		cniBridges, meshFilterPortInbound, meshFilterPortOutbound,
 		flushTCPConnTrackCrontab, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize,
 		flushUDPConnTrackCrontab, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize)
 	if err = server.Start(); err != nil {
