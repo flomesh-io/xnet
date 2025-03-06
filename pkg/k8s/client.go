@@ -34,10 +34,7 @@ func newClient(informerCollection *informers.InformerCollection, msgBroker *mess
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
 func (c *client) IsMonitoredNamespace(namespace string) bool {
 	if len(c.meshExcludeNamespaces) > 0 {
-		if slices.Contains(c.meshExcludeNamespaces, namespace) {
-			return false
-		}
-		return true
+		return !slices.Contains(c.meshExcludeNamespaces, namespace)
 	}
 	return c.informers.IsMonitoredNamespace(namespace)
 }
@@ -67,10 +64,7 @@ func (c *client) GetNamespace(namespace string) *corev1.Namespace {
 
 func (c *client) IsMonitoredPod(pod string, namespace string) bool {
 	if len(c.meshExcludeNamespaces) > 0 {
-		if slices.Contains(c.meshExcludeNamespaces, namespace) {
-			return false
-		}
-		return true
+		return !slices.Contains(c.meshExcludeNamespaces, namespace)
 	}
 	podIf, exists, err := c.informers.GetByKey(informers.InformerKeyPod, fmt.Sprintf("%s/%s", namespace, pod))
 	if exists && err == nil {
