@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/fs"
@@ -81,7 +82,7 @@ func ProgUnload() {
 	}
 }
 
-func InitMeshConfig() {
+func InitMeshConfig(ipv4Magic, ipv6Magic string) {
 	if cfgVal, cfgErr := maps.GetXNetCfg(maps.SysMesh); cfgErr != nil {
 		log.Fatal().Msg(cfgErr.Error())
 	} else {
@@ -95,13 +96,30 @@ func InitMeshConfig() {
 			}
 		}
 		cfgVal.IPv4().Set(maps.CfgFlagOffsetAclCheckOn)
+
+		if len(ipv4Magic) > 0 {
+			if ipv4Flags, err := strconv.ParseUint(ipv4Magic, 16, 64); err == nil {
+				cfgVal.Ipv4.Flags = ipv4Flags
+			} else {
+				log.Fatal().Msgf("invalid meshCfgIPv4Magic:%s", ipv4Magic)
+			}
+		}
+
+		if len(ipv6Magic) > 0 {
+			if ipv6Flags, err := strconv.ParseUint(ipv6Magic, 16, 64); err == nil {
+				cfgVal.Ipv6.Flags = ipv6Flags
+			} else {
+				log.Fatal().Msgf("invalid meshCfgIPv6Magic:%s", ipv6Magic)
+			}
+		}
+
 		if cfgErr = maps.SetXNetCfg(maps.SysMesh, cfgVal); cfgErr != nil {
 			log.Fatal().Msg(cfgErr.Error())
 		}
 	}
 }
 
-func InitE4lbConfig(enableE4lbIPv4, enableE4lbIPv6 bool) {
+func InitE4lbConfig(enableE4lbIPv4, enableE4lbIPv6 bool, ipv4Magic, ipv6Magic string) {
 	if cfgVal, cfgErr := maps.GetXNetCfg(maps.SysE4lb); cfgErr != nil {
 		log.Fatal().Msg(cfgErr.Error())
 	} else {
@@ -123,6 +141,22 @@ func InitE4lbConfig(enableE4lbIPv4, enableE4lbIPv6 bool) {
 			cfgVal.IPv6().Clear(maps.CfgFlagOffsetOTHProtoDenyAll)
 		} else {
 			cfgVal.IPv6().Clear(maps.CfgFlagOffsetDenyAll)
+		}
+
+		if len(ipv4Magic) > 0 {
+			if ipv4Flags, err := strconv.ParseUint(ipv4Magic, 16, 64); err == nil {
+				cfgVal.Ipv4.Flags = ipv4Flags
+			} else {
+				log.Fatal().Msgf("invalid e4lbCfgIPv4Magic:%s", ipv4Magic)
+			}
+		}
+
+		if len(ipv6Magic) > 0 {
+			if ipv6Flags, err := strconv.ParseUint(ipv6Magic, 16, 64); err == nil {
+				cfgVal.Ipv6.Flags = ipv6Flags
+			} else {
+				log.Fatal().Msgf("invalid e4lbCfgIPv6Magic:%s", ipv6Magic)
+			}
 		}
 
 		if cfgErr = maps.SetXNetCfg(maps.SysE4lb, cfgVal); cfgErr != nil {

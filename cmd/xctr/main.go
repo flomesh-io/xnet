@@ -38,6 +38,11 @@ var (
 	upgradeProg   bool
 	uninstallProg bool
 
+	meshCfgIPv4Magic string
+	meshCfgIPv6Magic string
+	e4lbCfgIPv4Magic string
+	e4lbCfgIPv6Magic string
+
 	meshFilterPortInbound  string
 	meshFilterPortOutbound string
 	meshExcludeNamespaces  []string
@@ -79,6 +84,11 @@ func init() {
 
 	flags.BoolVar(&upgradeProg, "upgrade-prog", false, "Upgrade xnet prog")
 	flags.BoolVar(&uninstallProg, "uninstall-prog", false, "Uninstall xnet prog")
+
+	flags.StringVar(&meshCfgIPv4Magic, "mesh-cfg-ipv4-magic", "", "mesh ipv4 config magic")
+	flags.StringVar(&meshCfgIPv6Magic, "mesh-cfg-ipv6-magic", "", "mesh ipv6 config magic")
+	flags.StringVar(&e4lbCfgIPv4Magic, "e4lb-cfg-ipv4-magic", "", "e4lb ipv4 config magic")
+	flags.StringVar(&e4lbCfgIPv6Magic, "e4lb-cfg-ipv6-magic", "", "e4lb ipv6 config magic")
 
 	flags.StringVar(&meshFilterPortInbound, "mesh-filter-port-inbound", "inbound", "mesh filter inbound port flag")
 	flags.StringVar(&meshFilterPortOutbound, "mesh-filter-port-outbound", "outbound", "mesh filter outbound port flag")
@@ -196,8 +206,9 @@ func main() {
 
 	server := controller.NewServer(ctx, kubeController, msgBroker, stop,
 		enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh,
-		upgradeProg, uninstallProg,
-		cniBridges, meshFilterPortInbound, meshFilterPortOutbound,
+		upgradeProg, uninstallProg, cniBridges,
+		meshCfgIPv4Magic, meshCfgIPv6Magic, e4lbCfgIPv4Magic, e4lbCfgIPv6Magic,
+		meshFilterPortInbound, meshFilterPortOutbound,
 		flushTCPConnTrackCrontab, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize,
 		flushUDPConnTrackCrontab, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize)
 	if err = server.Start(); err != nil {

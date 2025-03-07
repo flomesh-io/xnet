@@ -63,7 +63,7 @@ func ShowCfgEntries() {
 func (t *CfgVal) String() string {
 	var sb strings.Builder
 	_write_(&sb, `{"flags":{`)
-	_write_(&sb, fmt.Sprintf(`"IPv4":{"mask":"%064s",`, strconv.FormatUint(t.Ipv4.Flags, 2)))
+	_write_(&sb, fmt.Sprintf(`"IPv4":{"magic":"%X", "mask":"%064s",`, t.Ipv4.Flags, strconv.FormatUint(t.Ipv4.Flags, 2)))
 	for flag, name := range flagNames {
 		if flag > 0 {
 			_write_(&sb, `,`)
@@ -71,7 +71,7 @@ func (t *CfgVal) String() string {
 		_write_(&sb, fmt.Sprintf(`"%s": %t`, name, _bool_(t.IPv4().Get(uint8(flag)))))
 	}
 	_write_(&sb, `},`)
-	_write_(&sb, fmt.Sprintf(`"IPv6":{"mask":"%064s",`, strconv.FormatUint(t.Ipv6.Flags, 2)))
+	_write_(&sb, fmt.Sprintf(`"IPv6":{"magic":"%X", "mask":"%064s",`, t.Ipv6.Flags, strconv.FormatUint(t.Ipv6.Flags, 2)))
 	for flag, name := range flagNames {
 		if flag > 0 {
 			_write_(&sb, `,`)

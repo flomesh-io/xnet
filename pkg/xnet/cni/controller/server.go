@@ -37,6 +37,11 @@ type server struct {
 	upgradeProg   bool
 	uninstallProg bool
 
+	meshCfgIPv4Magic string
+	meshCfgIPv6Magic string
+	e4lbCfgIPv4Magic string
+	e4lbCfgIPv6Magic string
+
 	unixSockPath string
 	cniReady     chan struct{}
 
@@ -59,6 +64,7 @@ type server struct {
 func NewServer(ctx context.Context,
 	kubeController k8s.Controller, msgBroker *messaging.Broker, stop chan struct{},
 	enableE4lb, enableE4lbIPv4, enableE4lbIPv6, enableMesh, upgradeProg, uninstallProg bool, cniBridges []net.Interface,
+	meshCfgIPv4Magic, meshCfgIPv6Magic, e4lbCfgIPv4Magic, e4lbCfgIPv6Magic string,
 	meshFilterPortInbound, meshFilterPortOutbound string,
 	flushTCPConnTrackCrontab string, flushTCPConnTrackIdleSeconds, flushTCPConnTrackBatchSize int,
 	flushUDPConnTrackCrontab string, flushUDPConnTrackIdleSeconds, flushUDPConnTrackBatchSize int) Server {
@@ -78,6 +84,11 @@ func NewServer(ctx context.Context,
 
 		upgradeProg:   upgradeProg,
 		uninstallProg: uninstallProg,
+
+		meshCfgIPv4Magic: meshCfgIPv4Magic,
+		meshCfgIPv6Magic: meshCfgIPv6Magic,
+		e4lbCfgIPv4Magic: e4lbCfgIPv4Magic,
+		e4lbCfgIPv6Magic: e4lbCfgIPv6Magic,
 
 		meshFilterPortInbound:  meshFilterPortInbound,
 		meshFilterPortOutbound: meshFilterPortOutbound,
@@ -113,7 +124,7 @@ func (s *server) Start() error {
 		if !s.enableE4lb {
 			e4lb.E4lbOff()
 		} else {
-			load.InitE4lbConfig(s.enableE4lbIPv4, s.enableE4lbIPv6)
+			load.InitE4lbConfig(s.enableE4lbIPv4, s.enableE4lbIPv6, s.e4lbCfgIPv4Magic, s.e4lbCfgIPv6Magic)
 			e4lb.E4lbOn()
 		}
 
@@ -121,7 +132,7 @@ func (s *server) Start() error {
 			s.uninstallCNI()
 			go s.checkAndResetPods()
 		} else {
-			load.InitMeshConfig()
+			load.InitMeshConfig(s.meshCfgIPv4Magic, s.meshCfgIPv6Magic)
 
 			r.Path(cni.CreatePodURI).
 				Methods("POST").
