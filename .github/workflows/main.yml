@@ -128,14 +128,3 @@ jobs:
         env:
           CTR_TAG: latest
         run: make docker-build-cross
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push images to ghcr.io with "latest" tag
-        env:
-          CTR_REGISTRY: ghcr.io/${{ github.repository_owner }}
-          CTR_TAG: latest
-        run: make docker-build-cross
