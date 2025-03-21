@@ -239,7 +239,6 @@ func AttachBPFProg(sysId maps.SysID, dev string, ingress, egress bool) error {
 						log.Error().Msgf("add tc ingress filter error: %v", err)
 						return err
 					}
-
 				}
 			}
 		}
