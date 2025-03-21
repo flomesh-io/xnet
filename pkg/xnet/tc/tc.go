@@ -230,25 +230,26 @@ func AttachBPFProg(sysId maps.SysID, dev string, ingress, egress bool) error {
 		}
 
 		if ingress {
-			if ingressProgFD, ingressProgFDErr := getBPFObjFD(ingressProgName); ingressProgFDErr != nil {
-				log.Error().Msgf("fail to load ingress prog: %v", ingressProgFDErr)
-				return ingressProgFDErr
-			} else {
-				if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleIngress); filter == nil {
+			if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleIngress); filter == nil {
+				if ingressProgFD, ingressProgFDErr := getBPFObjFD(ingressProgName); ingressProgFDErr != nil {
+					log.Error().Msgf("fail to load ingress prog: %v", ingressProgFDErr)
+					return ingressProgFDErr
+				} else {
 					if err := addBPFFilter(rtnl, uint32(iface.Index), HandleIngress, uint32(ingressProgFD)); err != nil {
 						log.Error().Msgf("add tc ingress filter error: %v", err)
 						return err
 					}
+
 				}
 			}
 		}
 
 		if egress {
-			if egressProgFD, egressProgFDErr := getBPFObjFD(egressProgName); egressProgFDErr != nil {
-				log.Error().Msgf("fail to load egress prog: %v", egressProgFDErr)
-				return egressProgFDErr
-			} else {
-				if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleEgress); filter == nil {
+			if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleEgress); filter == nil {
+				if egressProgFD, egressProgFDErr := getBPFObjFD(egressProgName); egressProgFDErr != nil {
+					log.Error().Msgf("fail to load egress prog: %v", egressProgFDErr)
+					return egressProgFDErr
+				} else {
 					if err := addBPFFilter(rtnl, uint32(iface.Index), HandleEgress, uint32(egressProgFD)); err != nil {
 						log.Error().Msgf("add tc egress filter error: %v", err)
 						return err
