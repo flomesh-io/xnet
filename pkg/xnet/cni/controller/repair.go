@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/flomesh-io/xnet/pkg/xnet/bpf/maps"
+	"github.com/flomesh-io/xnet/pkg/xnet/e4lb"
 	"github.com/flomesh-io/xnet/pkg/xnet/ns"
 	"github.com/flomesh-io/xnet/pkg/xnet/tc"
 	"github.com/flomesh-io/xnet/pkg/xnet/volume"
@@ -155,4 +156,15 @@ func (s *server) doCheckAndResetPods() map[string]string {
 		}
 	}
 	return allPodsByAddr
+}
+
+func (s *server) checkAndRepairE4lb() {
+	for {
+		if !s.uninstallProg {
+			if s.enableE4lb {
+				e4lb.E4lbOn()
+			}
+		}
+		time.Sleep(time.Second * 3)
+	}
 }
