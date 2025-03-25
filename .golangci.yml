@@ -62,27 +62,36 @@ issues:
 
 # output configuration options
 output:
-  # Format: colored-line-number|line-number|json|colored-tab|tab|checkstyle|code-climate|junit-xml|github-actions|teamcity
-  #
-  # Multiple can be specified by separating them by comma, output can be provided
-  # for each of them by separating format name and path by colon symbol.
-  # Output path can be either `stdout`, `stderr` or path to the file to write to.
-  # Example: "checkstyle:report.xml,json:stdout,colored-line-number"
-  #
-  # Default: colored-line-number
   formats:
-    - format: colored-line-number
-  # Print lines of code with issue.
+    text:
+      # Print linter name in the end of issue text.
+      # Default: true
+      print-linter-name: true
+      # Print lines of code with issue.
+      # Default: true
+      print-issued-lines: true
+      # Use colors.
+      # Default: true
+      colors: true
+  # Order to use when sorting results.
+  # Possible values: `file`, `linter`, and `severity`.
+  #
+  # If the severity values are inside the following list, they are ordered in this order:
+  #   1. error
+  #   2. warning
+  #   3. high
+  #   4. medium
+  #   5. low
+  # Either they are sorted alphabetically.
+  #
+  # Default: ["linter", "file"]
+  sort-order:
+    - linter
+    - severity
+    - file # filepath, line, and column.
+  # Show statistics per linter.
   # Default: true
-  print-issued-lines: true
-  # Print linter name in the end of issue text.
-  # Default: true
-  print-linter-name: true
-  # Add a prefix to the output file references.
-  # Default is no prefix.
-  path-prefix: ""
-  # Sort results by: filepath, line and column.
-  sort-results: true
+  show-stats: true
 
 severity:
   # Set the default severity for issues.
