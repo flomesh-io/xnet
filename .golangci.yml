@@ -1,6 +1,7 @@
+version: "2"
+
 run:
   tests: false
-  timeout: 20m
 
 linters:
   disable:
