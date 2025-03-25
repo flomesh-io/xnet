@@ -19,17 +19,13 @@
 #define XPKT_PTR_ADD(x, len) ((void *)(((__u8 *)((long)x)) + (len)))
 #define XPKT_PTR_SUB(x, y) (((__u8 *)XPKT_PTR(x)) - ((__u8 *)XPKT_PTR(y)))
 
-#ifndef IPV4_SINGLE_STACK
 #define IP_ALEN 4
 #define XADDR_COPY(dst, src) memcpy(dst, src, 16)
 #define XADDR_ZERO(v) memset(v, 0, 16)
 #define XADDR_IS_ZERO(v) (v[0] == 0 && v[1] == 0 && v[2] == 0 && v[3] == 0)
-#else
-#define IP_ALEN 1
-#define XADDR_COPY(dst, src) memcpy(dst, src, 4)
-#define XADDR_ZERO(v) memset(v, 0, 4)
-#define XADDR_IS_ZERO(v) (v[0] == 0)
-#endif
+
+#define IS_IPv4(v) (v[0] > 0 && v[1] == 0 && v[2] == 0 && v[3] == 0)
+#define IS_IPv6(v) (v[1] != 0 || v[2] != 0 || v[3] != 0)
 
 #define XMAC_COPY(dst, src) memcpy(dst, src, ETH_ALEN)
 #define XMAC_ZERO(v) memset(v, 0, ETH_ALEN)

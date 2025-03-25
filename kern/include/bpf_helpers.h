@@ -178,7 +178,7 @@ INTERNAL(int)
 xpkt_csum_set_udp_dst_ipv6(skb_t *skb, xpkt_t *pkt, __be32 *xaddr)
 {
     int udp_csum_off = pkt->l4_off + offsetof(struct udphdr, check);
-    int ip_src_off = pkt->l3_off + offsetof(struct ipv6hdr, saddr);
+    int ip_src_off = pkt->l3_off + offsetof(struct ipv6hdr, daddr);
     __be32 *old_sip = pkt->flow.daddr;
 
     bpf_l4_csum_replace(skb, udp_csum_off, old_sip[0], xaddr[0],
