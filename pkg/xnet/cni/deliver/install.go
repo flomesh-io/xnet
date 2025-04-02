@@ -108,9 +108,11 @@ func (in *Installer) Cleanup(ctx context.Context) error {
 }
 
 func (in *Installer) copyBinaries() error {
-	loopbackFile := path.Join(volume.CniBin.MountPath, cni.PluginLoopBack)
-	if exists := util.Exists(loopbackFile); !exists {
-		return fmt.Errorf("%s is not cni bin directory for missing lookback cli", volume.CniBin.MountPath)
+	loopbackCli := path.Join(volume.CniBin.MountPath, cni.PluginLoopBack)
+	if exists := util.Exists(loopbackCli); !exists {
+		if _, err := os.Lstat(loopbackCli); err != nil {
+			return fmt.Errorf("%s is not cni bin directory for missing loopback cli", volume.CniBin.MountPath)
+		}
 	}
 
 	dstFile := path.Join(volume.CniBin.MountPath, cni.PluginName)

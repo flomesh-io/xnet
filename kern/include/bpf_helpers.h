@@ -12,11 +12,11 @@ xpkt_csum_set_tcp_src_ipv4(skb_t *skb, xpkt_t *pkt, __be32 xaddr)
     int ip_csum_off = pkt->l3_off + offsetof(struct iphdr, check);
     int tcp_csum_off = pkt->l4_off + offsetof(struct tcphdr, check);
     int ip_src_off = pkt->l3_off + offsetof(struct iphdr, saddr);
-    __be32 old_sip = pkt->flow.saddr4;
+    __be32 old_saddr = pkt->flow.saddr4;
 
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip, xaddr,
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_saddr, xaddr,
                         BPF_F_PSEUDO_HDR | sizeof(xaddr));
-    bpf_l3_csum_replace(skb, ip_csum_off, old_sip, xaddr, sizeof(xaddr));
+    bpf_l3_csum_replace(skb, ip_csum_off, old_saddr, xaddr, sizeof(xaddr));
     bpf_skb_store_bytes(skb, ip_src_off, &xaddr, sizeof(xaddr), 0);
 
     pkt->flow.saddr4 = xaddr;
@@ -29,15 +29,15 @@ xpkt_csum_set_tcp_src_ipv6(skb_t *skb, xpkt_t *pkt, __be32 *xaddr)
 {
     int tcp_csum_off = pkt->l4_off + offsetof(struct tcphdr, check);
     int ip_src_off = pkt->l3_off + offsetof(struct ipv6hdr, saddr);
-    __be32 *old_sip = pkt->flow.saddr;
+    __be32 *old_saddr = pkt->flow.saddr;
 
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[0], xaddr[0],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_saddr[0], xaddr[0],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[1], xaddr[1],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_saddr[1], xaddr[1],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[2], xaddr[2],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_saddr[2], xaddr[2],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[3], xaddr[3],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_saddr[3], xaddr[3],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
     bpf_skb_store_bytes(skb, ip_src_off, xaddr, sizeof(pkt->flow.saddr), 0);
 
@@ -52,11 +52,11 @@ xpkt_csum_set_tcp_dst_ipv4(skb_t *skb, xpkt_t *pkt, __be32 xaddr)
     int ip_csum_off = pkt->l3_off + offsetof(struct iphdr, check);
     int tcp_csum_off = pkt->l4_off + offsetof(struct tcphdr, check);
     int ip_dst_off = pkt->l3_off + offsetof(struct iphdr, daddr);
-    __be32 old_dip = pkt->flow.daddr4;
+    __be32 old_daddr = pkt->flow.daddr4;
 
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_dip, xaddr,
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_daddr, xaddr,
                         BPF_F_PSEUDO_HDR | sizeof(xaddr));
-    bpf_l3_csum_replace(skb, ip_csum_off, old_dip, xaddr, sizeof(xaddr));
+    bpf_l3_csum_replace(skb, ip_csum_off, old_daddr, xaddr, sizeof(xaddr));
     bpf_skb_store_bytes(skb, ip_dst_off, &xaddr, sizeof(xaddr), 0);
     pkt->flow.daddr4 = xaddr;
 
@@ -67,18 +67,18 @@ INTERNAL(int)
 xpkt_csum_set_tcp_dst_ipv6(skb_t *skb, xpkt_t *pkt, __be32 *xaddr)
 {
     int tcp_csum_off = pkt->l4_off + offsetof(struct tcphdr, check);
-    int ip_src_off = pkt->l3_off + offsetof(struct ipv6hdr, daddr);
-    __be32 *old_sip = pkt->flow.daddr;
+    int ip_dst_off = pkt->l3_off + offsetof(struct ipv6hdr, daddr);
+    __be32 *old_daddr = pkt->flow.daddr;
 
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[0], xaddr[0],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_daddr[0], xaddr[0],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[1], xaddr[1],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_daddr[1], xaddr[1],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[2], xaddr[2],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_daddr[2], xaddr[2],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, tcp_csum_off, old_sip[3], xaddr[3],
+    bpf_l4_csum_replace(skb, tcp_csum_off, old_daddr[3], xaddr[3],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_skb_store_bytes(skb, ip_src_off, xaddr, sizeof(pkt->flow.daddr), 0);
+    bpf_skb_store_bytes(skb, ip_dst_off, xaddr, sizeof(pkt->flow.daddr), 0);
 
     XADDR_COPY(pkt->flow.daddr, xaddr);
 
@@ -125,11 +125,11 @@ xpkt_csum_set_udp_src_ipv4(skb_t *skb, xpkt_t *pkt, __be32 xaddr)
     int ip_csum_off = pkt->l3_off + offsetof(struct iphdr, check);
     int udp_csum_off = pkt->l4_off + offsetof(struct udphdr, check);
     int ip_src_off = pkt->l3_off + offsetof(struct iphdr, saddr);
-    __be32 old_sip = pkt->flow.saddr4;
+    __be32 old_saddr = pkt->flow.saddr4;
 
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip, xaddr,
+    bpf_l4_csum_replace(skb, udp_csum_off, old_saddr, xaddr,
                         BPF_F_PSEUDO_HDR | sizeof(xaddr));
-    bpf_l3_csum_replace(skb, ip_csum_off, old_sip, xaddr, sizeof(xaddr));
+    bpf_l3_csum_replace(skb, ip_csum_off, old_saddr, xaddr, sizeof(xaddr));
     bpf_skb_store_bytes(skb, ip_src_off, &xaddr, sizeof(xaddr), 0);
     pkt->flow.saddr4 = xaddr;
 
@@ -141,15 +141,15 @@ xpkt_csum_set_udp_src_ipv6(skb_t *skb, xpkt_t *pkt, __be32 *xaddr)
 {
     int udp_csum_off = pkt->l4_off + offsetof(struct udphdr, check);
     int ip_src_off = pkt->l3_off + offsetof(struct ipv6hdr, saddr);
-    __be32 *old_sip = pkt->flow.saddr;
+    __be32 *old_saddr = pkt->flow.saddr;
 
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[0], xaddr[0],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_saddr[0], xaddr[0],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[1], xaddr[1],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_saddr[1], xaddr[1],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[2], xaddr[2],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_saddr[2], xaddr[2],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[3], xaddr[3],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_saddr[3], xaddr[3],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
     bpf_skb_store_bytes(skb, ip_src_off, xaddr, sizeof(pkt->flow.saddr), 0);
     XADDR_COPY(pkt->flow.saddr, xaddr);
@@ -163,11 +163,11 @@ xpkt_csum_set_udp_dst_ipv4(skb_t *skb, xpkt_t *pkt, __be32 xaddr)
     int ip_csum_off = pkt->l3_off + offsetof(struct iphdr, check);
     int udp_csum_off = pkt->l4_off + offsetof(struct udphdr, check);
     int ip_dst_off = pkt->l3_off + offsetof(struct iphdr, daddr);
-    __be32 old_dip = pkt->flow.daddr4;
+    __be32 old_daddr = pkt->flow.daddr4;
 
-    bpf_l4_csum_replace(skb, udp_csum_off, old_dip, xaddr,
+    bpf_l4_csum_replace(skb, udp_csum_off, old_daddr, xaddr,
                         BPF_F_PSEUDO_HDR | sizeof(xaddr));
-    bpf_l3_csum_replace(skb, ip_csum_off, old_dip, xaddr, sizeof(xaddr));
+    bpf_l3_csum_replace(skb, ip_csum_off, old_daddr, xaddr, sizeof(xaddr));
     bpf_skb_store_bytes(skb, ip_dst_off, &xaddr, sizeof(xaddr), 0);
     pkt->flow.daddr4 = xaddr;
 
@@ -178,18 +178,18 @@ INTERNAL(int)
 xpkt_csum_set_udp_dst_ipv6(skb_t *skb, xpkt_t *pkt, __be32 *xaddr)
 {
     int udp_csum_off = pkt->l4_off + offsetof(struct udphdr, check);
-    int ip_src_off = pkt->l3_off + offsetof(struct ipv6hdr, daddr);
-    __be32 *old_sip = pkt->flow.daddr;
+    int ip_dst_off = pkt->l3_off + offsetof(struct ipv6hdr, daddr);
+    __be32 *old_daddr = pkt->flow.daddr;
 
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[0], xaddr[0],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_daddr[0], xaddr[0],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[1], xaddr[1],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_daddr[1], xaddr[1],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[2], xaddr[2],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_daddr[2], xaddr[2],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_l4_csum_replace(skb, udp_csum_off, old_sip[3], xaddr[3],
+    bpf_l4_csum_replace(skb, udp_csum_off, old_daddr[3], xaddr[3],
                         BPF_F_PSEUDO_HDR | sizeof(*xaddr));
-    bpf_skb_store_bytes(skb, ip_src_off, xaddr, sizeof(pkt->flow.daddr), 0);
+    bpf_skb_store_bytes(skb, ip_dst_off, xaddr, sizeof(pkt->flow.daddr), 0);
     XADDR_COPY(pkt->flow.daddr, xaddr);
 
     return 0;
