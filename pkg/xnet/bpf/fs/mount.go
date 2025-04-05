@@ -13,7 +13,7 @@ func IsMountedAt(mountpoint string) (bool, error) {
 	if err := syscall.Statfs(mountpoint, &data); err != nil {
 		return false, fmt.Errorf("cannot statfs %q: %v", mountpoint, err)
 	}
-	return data.Type == uint32(fsMagic), nil
+	return data.Type == fsMagic, nil
 }
 
 // IsMounted checks if the BPF fs is mounted already in the default location
