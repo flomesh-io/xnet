@@ -36,7 +36,7 @@ func newTracePortAdd() *cobra.Command {
 	//add flags
 	f := cmd.Flags()
 	tracePortAdd.sys.addFlags(f)
-	tracePortAdd.sa.addPortFlag(f)
+	tracePortAdd.addPortFlag(f)
 	tracePortAdd.tc.addFlags(f)
 
 	return cmd

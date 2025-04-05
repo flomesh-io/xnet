@@ -135,6 +135,7 @@ func ShowTCPFlowEntries() {
 	fmt.Println(`]`)
 }
 
+// nolint: staticcheck
 func (t *FlowTCPVal) String() string {
 	return fmt.Sprintf(`{"flow_dir": "%s","do_trans": %t,"fin": %t,`+
 		`"idle_duration": "%s",`+

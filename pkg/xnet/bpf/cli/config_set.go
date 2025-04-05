@@ -67,7 +67,7 @@ func newConfigSet() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
-	configSet.sys.addFlags(f)
+	configSet.addFlags(f)
 	f.BoolVar(&configSet.ipv4, "ipv4", false, "--ipv4")
 	f.BoolVar(&configSet.ipv6, "ipv6", false, "--ipv6")
 
@@ -171,9 +171,10 @@ func (a *configSetCmd) setAcl(cfgVal *maps.CfgVal) {
 	}
 
 	for _, proto := range protos {
-		if a.aclCheckOn == 1 {
+		switch a.aclCheckOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetAclCheckOn)
-		} else if a.aclCheckOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetAclCheckOn)
 		}
 	}
@@ -192,45 +193,52 @@ func (a *configSetCmd) setNat(cfgVal *maps.CfgVal) {
 	}
 
 	for _, proto := range protos {
-		if a.tcpNatByIpPortOn == 1 {
+		switch a.tcpNatByIpPortOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPNatByIpPortOn)
-		} else if a.tcpNatByIpPortOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPNatByIpPortOn)
 		}
 
-		if a.tcpNatByIpOn == 1 {
+		switch a.tcpNatByIpOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPNatByIpOn)
-		} else if a.tcpNatByIpOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPNatByIpOn)
 		}
 
-		if a.tcpNatAllOff == 1 {
+		switch a.tcpNatAllOff {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPNatAllOff)
-		} else if a.tcpNatAllOff == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPNatAllOff)
 		}
 
-		if a.udpNatByIpPortOn == 1 {
+		switch a.udpNatByIpPortOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPNatByIpPortOn)
-		} else if a.udpNatByIpPortOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPNatByIpPortOn)
 		}
 
-		if a.udpNatByIpOn == 1 {
+		switch a.udpNatByIpOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPNatByIpOn)
-		} else if a.udpNatByIpOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPNatByIpOn)
 		}
 
-		if a.udpNatByPortOn == 1 {
+		switch a.udpNatByPortOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPNatByPortOn)
-		} else if a.udpNatByPortOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPNatByPortOn)
 		}
 
-		if a.udpNatAllOff == 1 {
+		switch a.udpNatAllOff {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPNatAllOff)
-		} else if a.udpNatAllOff == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPNatAllOff)
 		}
 	}
@@ -249,39 +257,45 @@ func (a *configSetCmd) setNatOpt(cfgVal *maps.CfgVal) {
 	}
 
 	for _, proto := range protos {
-		if a.tcpNatOptOn == 1 {
+		switch a.tcpNatOptOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPNatOptOn)
-		} else if a.tcpNatOptOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPNatOptOn)
 		}
 
-		if a.tcpNatOptWithLocalAddrOn == 1 {
+		switch a.tcpNatOptWithLocalAddrOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPNatOptWithLocalAddrOn)
-		} else if a.tcpNatOptWithLocalAddrOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPNatOptWithLocalAddrOn)
 		}
 
-		if a.tcpNatOptWithLocalPortOn == 1 {
+		switch a.tcpNatOptWithLocalPortOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPNatOptWithLocalPortOn)
-		} else if a.tcpNatOptWithLocalPortOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPNatOptWithLocalPortOn)
 		}
 
-		if a.udpNatOptOn == 1 {
+		switch a.udpNatOptOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPNatOptOn)
-		} else if a.udpNatOptOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPNatOptOn)
 		}
 
-		if a.udpNatOptWithLocalAddrOn == 1 {
+		switch a.udpNatOptWithLocalAddrOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPNatOptWithLocalAddrOn)
-		} else if a.udpNatOptWithLocalAddrOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPNatOptWithLocalAddrOn)
 		}
 
-		if a.udpNatOptWithLocalPortOn == 1 {
+		switch a.udpNatOptWithLocalPortOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPNatOptWithLocalPortOn)
-		} else if a.udpNatOptWithLocalPortOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPNatOptWithLocalPortOn)
 		}
 	}
@@ -300,45 +314,52 @@ func (a *configSetCmd) setProto(cfgVal *maps.CfgVal) {
 	}
 
 	for _, proto := range protos {
-		if a.tcpProtoDenyAll == 1 {
+		switch a.tcpProtoDenyAll {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPProtoDenyAll)
-		} else if a.tcpProtoDenyAll == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPProtoDenyAll)
 		}
 
-		if a.tcpProtoAllowAll == 1 {
+		switch a.tcpProtoAllowAll {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPProtoAllowAll)
-		} else if a.tcpProtoAllowAll == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPProtoAllowAll)
 		}
 
-		if a.tcpProtoAllowNatEscape == 1 {
+		switch a.tcpProtoAllowNatEscape {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTCPProtoAllowNatEscape)
-		} else if a.tcpProtoAllowNatEscape == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTCPProtoAllowNatEscape)
 		}
 
-		if a.udpProtoDenyAll == 1 {
+		switch a.udpProtoDenyAll {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPProtoDenyAll)
-		} else if a.udpProtoDenyAll == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPProtoDenyAll)
 		}
 
-		if a.udpProtoAllowAll == 1 {
+		switch a.udpProtoAllowAll {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPProtoAllowAll)
-		} else if a.udpProtoAllowAll == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPProtoAllowAll)
 		}
 
-		if a.udpProtoAllowNatEscape == 1 {
+		switch a.udpProtoAllowNatEscape {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetUDPProtoAllowNatEscape)
-		} else if a.udpProtoAllowNatEscape == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetUDPProtoAllowNatEscape)
 		}
 
-		if a.othProtoDenyAll == 1 {
+		switch a.othProtoDenyAll {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetOTHProtoDenyAll)
-		} else if a.othProtoDenyAll == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetOTHProtoDenyAll)
 		}
 	}
@@ -357,9 +378,10 @@ func (a *configSetCmd) setDeny(cfgVal *maps.CfgVal) {
 	}
 
 	for _, proto := range protos {
-		if a.denyAll == 1 {
+		switch a.denyAll {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetDenyAll)
-		} else if a.denyAll == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetDenyAll)
 		}
 	}
@@ -378,9 +400,10 @@ func (a *configSetCmd) setAllow(cfgVal *maps.CfgVal) {
 	}
 
 	for _, proto := range protos {
-		if a.allowAll == 1 {
+		switch a.allowAll {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetAllowAll)
-		} else if a.allowAll == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetAllowAll)
 		}
 	}
@@ -399,45 +422,52 @@ func (a *configSetCmd) setTracer(cfgVal *maps.CfgVal) {
 	}
 
 	for _, proto := range protos {
-		if a.traceHdrOn == 1 {
+		switch a.traceHdrOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTraceHdrOn)
-		} else if a.traceHdrOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTraceHdrOn)
 		}
 
-		if a.traceNatOn == 1 {
+		switch a.traceNatOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTraceNatOn)
-		} else if a.traceNatOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTraceNatOn)
 		}
 
-		if a.traceOptOn == 1 {
+		switch a.traceOptOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTraceOptOn)
-		} else if a.traceOptOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTraceOptOn)
 		}
 
-		if a.traceAclOn == 1 {
+		switch a.traceAclOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTraceAclOn)
-		} else if a.traceAclOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTraceAclOn)
 		}
 
-		if a.traceFlowOn == 1 {
+		switch a.traceFlowOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTraceFlowOn)
-		} else if a.traceFlowOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTraceFlowOn)
 		}
 
-		if a.traceByIpOn == 1 {
+		switch a.traceByIpOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTraceByIpOn)
-		} else if a.traceByIpOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTraceByIpOn)
 		}
 
-		if a.traceByPortOn == 1 {
+		switch a.traceByPortOn {
+		case 1:
 			proto.Set(maps.CfgFlagOffsetTraceByPortOn)
-		} else if a.traceByPortOn == 0 {
+		case 0:
 			proto.Clear(maps.CfgFlagOffsetTraceByPortOn)
 		}
 	}

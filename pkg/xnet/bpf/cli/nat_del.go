@@ -33,7 +33,7 @@ func newNatDel() *cobra.Command {
 
 	//del flags
 	f := cmd.Flags()
-	natDel.sys.addFlags(f)
+	natDel.addFlags(f)
 	natDel.sa.addFlags(f)
 	natDel.proto.addFlags(f)
 	natDel.tc.addFlags(f)

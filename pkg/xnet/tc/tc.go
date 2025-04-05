@@ -169,14 +169,14 @@ func ShowBPFProg(dev string) error {
 	fmt.Print(`{`)
 	if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleIngress); filter != nil {
 		hasIngressFilter = true
-		fmt.Printf(`"ingress":"%s"`, *filter.Attribute.BPF.Name)
+		fmt.Printf(`"ingress":"%s"`, *filter.BPF.Name)
 	}
 
 	if filter, _ := GetBPFFilter(rtnl, uint32(iface.Index), HandleEgress); filter != nil {
 		if hasIngressFilter {
 			fmt.Print(`,`)
 		}
-		fmt.Printf(`"egress":"%s"`, *filter.Attribute.BPF.Name)
+		fmt.Printf(`"egress":"%s"`, *filter.BPF.Name)
 	}
 	fmt.Println(`}`)
 

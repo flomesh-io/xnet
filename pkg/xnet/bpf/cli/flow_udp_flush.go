@@ -35,7 +35,7 @@ func newUDPFlowFlush() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
-	flowFlush.sys.addFlags(f)
+	flowFlush.addFlags(f)
 	f.IntVar(&flowFlush.idleSeconds, "idle-seconds", 3600, "--idle-seconds=3600")
 	f.IntVar(&flowFlush.batchSize, "batch-size", 1024, "--batch-size=1024")
 
