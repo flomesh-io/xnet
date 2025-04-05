@@ -32,7 +32,7 @@ func newConfigGet() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
-	configGet.sys.addFlags(f)
+	configGet.addFlags(f)
 
 	return cmd
 }

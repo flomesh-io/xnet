@@ -136,7 +136,7 @@ func GetNS(nspath string) (NetNS, error) {
 	if !strings.EqualFold(absPath, nspath) &&
 		!strings.HasPrefix(absPath, safeHostNetnsDir) &&
 		!strings.HasPrefix(absPath, safeVarRunNetnsDir) &&
-		!(strings.HasPrefix(absPath, safeNetnsDirPrefix) && strings.HasSuffix(absPath, safeNetnsDirSuffix)) {
+		(!strings.HasPrefix(absPath, safeNetnsDirPrefix) || !strings.HasSuffix(absPath, safeNetnsDirSuffix)) {
 		return nil, fmt.Errorf("invalid namespace path: %s absPath: %s error:%v", nspath, absPath, err)
 	}
 

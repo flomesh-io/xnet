@@ -82,14 +82,14 @@ func (a *netnsListCmd) run() error {
 						fmt.Print(` {`)
 						if filter, _ := nstc.GetBPFFilter(rtnl, uint32(iface.Index), nstc.HandleIngress); filter != nil {
 							hasIngressFilter = true
-							fmt.Printf(`"ingress":"%s"`, *filter.Attribute.BPF.Name)
+							fmt.Printf(`"ingress":"%s"`, *filter.BPF.Name)
 						}
 
 						if filter, _ := nstc.GetBPFFilter(rtnl, uint32(iface.Index), nstc.HandleEgress); filter != nil {
 							if hasIngressFilter {
 								fmt.Print(`,`)
 							}
-							fmt.Printf(`"egress":"%s"`, *filter.Attribute.BPF.Name)
+							fmt.Printf(`"egress":"%s"`, *filter.BPF.Name)
 						}
 						fmt.Print(`}`)
 					}
