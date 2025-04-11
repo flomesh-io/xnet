@@ -12,6 +12,8 @@ const (
 
 	bridgeAclId   = uint16('b'<<8 | 'r')
 	bridgeAclFlag = uint8('c')
+
+	podEth0 = `eth0`
 )
 
 // Server CNI Server.

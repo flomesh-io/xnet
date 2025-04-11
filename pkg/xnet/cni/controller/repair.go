@@ -15,11 +15,11 @@ import (
 )
 
 func (s *server) checkAndRepairPods() {
-	var repairFailPods map[string]string
 	for {
-		repairFailPods = s.doCheckAndRepairPods()
+		repairFailPods := s.doCheckAndRepairPods()
 		if len(repairFailPods) == 0 {
-			break
+			time.Sleep(time.Second * 10)
+			continue
 		}
 		for _, pod := range repairFailPods {
 			log.Error().Msgf(`fail to check and repair pod: %s`, pod)
@@ -40,8 +40,13 @@ func (s *server) doCheckAndRepairPods() map[string]string {
 		allPodsByAddr[pod.Status.PodIP] = fmt.Sprintf(`%s/%s`, pod.Namespace, pod.Name)
 	}
 
-	netnsDirs := []string{volume.Netns.MountPath, volume.SysProc.MountPath}
-	for _, netnsDir := range netnsDirs {
+	log.Debug().Msgf("monitoredPodsByAddr Count: %d", len(monitoredPodsByAddr))
+	log.Debug().Msgf("allPodsByAddr Count: %d", len(allPodsByAddr))
+
+	for _, netnsDir := range volume.Netns {
+		if len(monitoredPodsByAddr) == 0 {
+			break
+		}
 		rd, err := os.ReadDir(netnsDir)
 		if err != nil {
 			log.Debug().Err(err).Msg(netnsDir)
@@ -56,27 +61,27 @@ func (s *server) doCheckAndRepairPods() map[string]string {
 			}
 
 			if doErr := netNS.Do(func(_ ns.NetNS) error {
-				ifaces, ifaceErr := net.Interfaces()
-				if ifaceErr != nil {
-					log.Debug().Err(ifaceErr).Msg(nsName)
-					return nil
-				}
-				for _, iface := range ifaces {
+				if iface, ifaceErr := net.InterfaceByName(podEth0); ifaceErr == nil {
 					if (iface.Flags&net.FlagLoopback) == 0 && (iface.Flags&net.FlagUp) != 0 {
 						if addrs, addrErr := iface.Addrs(); addrErr == nil {
 							for _, addr := range addrs {
 								addrStr := addr.String()
 								addrStr = addrStr[0:strings.Index(addrStr, `/`)]
+								log.Debug().Msgf("netns Addr:%s %s", iface.Name, addrStr)
 								if pod, exists := monitoredPodsByAddr[addrStr]; exists {
+									log.Debug().Msgf("monitoredPodsByAddr:%s", addrStr)
 									if attachErr := tc.AttachBPFProg(maps.SysMesh, iface.Name, true, true); attachErr != nil {
 										return fmt.Errorf(`%s %s`, pod, attachErr.Error())
 									}
+									log.Debug().Msgf("monitoredPodsByAddr:%s attach success", addrStr)
 									delete(monitoredPodsByAddr, addrStr)
 									delete(allPodsByAddr, addrStr)
 								} else if pod, exists := allPodsByAddr[addrStr]; exists {
+									log.Debug().Msgf("allPodsByAddr:%s", addrStr)
 									if detachErr := tc.DetachBPFProg(maps.SysMesh, iface.Name, true, true); detachErr != nil {
 										return fmt.Errorf(`%s %s`, pod, detachErr.Error())
 									}
+									log.Debug().Msgf("allPodsByAddr:%s detach success", addrStr)
 									delete(allPodsByAddr, addrStr)
 								}
 							}
@@ -89,18 +94,17 @@ func (s *server) doCheckAndRepairPods() map[string]string {
 			}
 		}
 	}
+	log.Debug().Msgf("monitoredPodsByAddr Attach Fail Count: %d", len(monitoredPodsByAddr))
 	return monitoredPodsByAddr
 }
 
 func (s *server) checkAndResetPods() {
-	var resetFailPods map[string]string
+	retries := 3
 	for {
-		resetFailPods = s.doCheckAndResetPods()
-		if len(resetFailPods) == 0 {
+		_ = s.doCheckAndResetPods()
+		retries--
+		if retries < 0 {
 			break
-		}
-		for _, pod := range resetFailPods {
-			log.Error().Msgf(`fail to check and reset pod: %s`, pod)
 		}
 		time.Sleep(time.Second * 3)
 	}
@@ -112,8 +116,12 @@ func (s *server) doCheckAndResetPods() map[string]string {
 	for _, pod := range pods {
 		allPodsByAddr[pod.Status.PodIP] = fmt.Sprintf(`%s/%s`, pod.Namespace, pod.Name)
 	}
-	netnsDirs := []string{volume.Netns.MountPath, volume.SysProc.MountPath}
-	for _, netnsDir := range netnsDirs {
+	log.Debug().Msgf("allPodsByAddr Count: %d", len(allPodsByAddr))
+
+	for _, netnsDir := range volume.Netns {
+		if len(allPodsByAddr) == 0 {
+			break
+		}
 		rd, err := os.ReadDir(netnsDir)
 		if err != nil {
 			log.Debug().Err(err).Msg(netnsDir)
@@ -128,21 +136,18 @@ func (s *server) doCheckAndResetPods() map[string]string {
 			}
 
 			if nsErr = netNS.Do(func(_ ns.NetNS) error {
-				ifaces, ifaceErr := net.Interfaces()
-				if ifaceErr != nil {
-					log.Debug().Err(ifaceErr).Msg(nsName)
-					return nil
-				}
-				for _, iface := range ifaces {
+				if iface, ifaceErr := net.InterfaceByName(podEth0); ifaceErr == nil {
 					if (iface.Flags&net.FlagLoopback) == 0 && (iface.Flags&net.FlagUp) != 0 {
 						if addrs, addrErr := iface.Addrs(); addrErr == nil {
 							for _, addr := range addrs {
 								addrStr := addr.String()
 								addrStr = addrStr[0:strings.Index(addrStr, `/`)]
+								log.Debug().Msgf("netns Addr:%s %s", iface.Name, addrStr)
 								if pod, exists := allPodsByAddr[addrStr]; exists {
 									if detachErr := tc.DetachBPFProg(maps.SysMesh, iface.Name, true, true); detachErr != nil {
 										return fmt.Errorf(`%s %s`, pod, detachErr.Error())
 									}
+									log.Debug().Msgf("allPodsByAddr:%s detach success", addrStr)
 									delete(allPodsByAddr, addrStr)
 								}
 							}
