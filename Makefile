@@ -35,9 +35,9 @@ docker-build-xnet-ubuntu-22.04:
 docker-build-xnet-ubuntu-24.04:
 	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-24.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu.24.04 --build-arg LDFLAGS=$(LDFLAGS) .
 
-.PHONY: docker-build-xnet-openeuler-22.03
-docker-build-bclinux-xnet-openeuler-22.03:
-docker-build-bclinux-xnet-openeuler-22.03:
+.PHONY: docker-build-xnet-bclinux-openeuler-22.03
+docker-build-xnet-bclinux-openeuler-22.03:
+docker-build-xnet-bclinux-openeuler-22.03:
 	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:openeuler-22.03-$(CTR_TAG) -f dockerfiles/Dockerfile.openeuler.22.03 --build-arg LDFLAGS=$(LDFLAGS) .
 
 TARGETS = xnet xnet-ubuntu-20.04 xnet-ubuntu-22.04 xnet-ubuntu-24.04

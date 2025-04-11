@@ -3,7 +3,6 @@ package informers
 import (
 	"errors"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/rs/zerolog/log"
@@ -53,11 +52,11 @@ func WithKubeClient(kubeClient kubernetes.Interface) InformerCollectionOption {
 		nsInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, DefaultKubeEventResyncInterval, monitorNamespaceOption)
 		ic.informers[InformerKeyNamespace] = nsInformerFactory.Core().V1().Namespaces().Informer()
 
-		nodeName, err := os.Hostname()
-		if err != nil {
-			log.Fatal().Msg(err.Error())
+		nodeName := os.Getenv("NODE_NAME")
+		if len(nodeName) == 0 {
+			log.Fatal().Msg("missing NODE_NAME env")
 		}
-		nodeSelector := fields.OneTermEqualSelector("spec.nodeName", strings.ToLower(nodeName)).String()
+		nodeSelector := fields.OneTermEqualSelector("spec.nodeName", nodeName).String()
 
 		podNodeOption := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
 			opt.FieldSelector = nodeSelector
