@@ -21,11 +21,6 @@ var (
 		MountPath: "/host/run",
 	}
 
-	Netns = HostMount{
-		HostPath:  "/var/run/netns",
-		MountPath: "/host/run/netns",
-	}
-
 	CniBin = HostMount{
 		HostPath:  "/bin",
 		MountPath: "/host/cni/bin",
@@ -36,4 +31,6 @@ var (
 		HostPath:  "/var/lib/rancher/k3s/agent/etc/cni/net.d", //k3s
 		MountPath: "/host/cni/net.d",
 	}
+
+	Netns = []string{}
 )

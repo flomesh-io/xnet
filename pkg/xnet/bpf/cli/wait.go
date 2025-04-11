@@ -56,8 +56,8 @@ func (a *waitCmd) run() error {
 					break
 				}
 			}
-			time.Sleep(time.Second * 2)
 		}
+		time.Sleep(time.Second * 2)
 	}
 	return nil
 }

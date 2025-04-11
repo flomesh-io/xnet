@@ -132,7 +132,21 @@ func parseFlags() error {
 	}
 	if len(nodePathSysRun) > 0 {
 		volume.SysRun.HostPath = nodePathSysRun
-		volume.Netns.HostPath = path.Join(volume.SysRun.HostPath, `netns`)
+
+		netnsDir := path.Join(volume.SysRun.HostPath, `docker`, `netns`)
+		if _, err := os.ReadDir(netnsDir); err == nil {
+			volume.Netns = append(volume.Netns, netnsDir)
+		}
+
+		netnsDir = path.Join(volume.SysRun.HostPath, `netns`)
+		if _, err := os.ReadDir(netnsDir); err == nil {
+			volume.Netns = append(volume.Netns, netnsDir)
+		}
+
+		netnsDir = volume.SysProc.MountPath
+		if _, err := os.ReadDir(netnsDir); err == nil {
+			volume.Netns = append(volume.Netns, netnsDir)
+		}
 	}
 
 	return nil

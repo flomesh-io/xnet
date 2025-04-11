@@ -58,8 +58,7 @@ func (s *server) CmdAdd(args *skel.CmdArgs) (err error) {
 		if len(args.IfName) != 0 {
 			return tc.AttachBPFProg(maps.SysMesh, args.IfName, true, true)
 		}
-		ifaces, _ := net.Interfaces()
-		for _, iface := range ifaces {
+		if iface, ifaceErr := net.InterfaceByName(podEth0); ifaceErr == nil {
 			if (iface.Flags&net.FlagLoopback) == 0 && (iface.Flags&net.FlagUp) != 0 {
 				return tc.AttachBPFProg(maps.SysMesh, iface.Name, true, true)
 			}

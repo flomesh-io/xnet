@@ -11,8 +11,7 @@ import (
 
 func (s *server) findHwAddrByPodIP(podIP string) (net.HardwareAddr, bool) {
 	var hwAddr net.HardwareAddr
-	netnsDirs := []string{volume.Netns.MountPath, volume.SysProc.MountPath}
-	for _, netnsDir := range netnsDirs {
+	for _, netnsDir := range volume.Netns {
 		rd, err := os.ReadDir(netnsDir)
 		if err != nil {
 			log.Debug().Err(err).Msg(netnsDir)
