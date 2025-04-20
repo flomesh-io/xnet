@@ -8,7 +8,7 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/util/route"
 )
 
-func E4lbOn() {
+func E4lbOn() bool {
 	dev, _, err := route.DiscoverGateway()
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to find default net device.")
@@ -18,9 +18,11 @@ func E4lbOn() {
 		log.Fatal().Err(ifaceErr).Msgf("fail to find %s link", dev)
 	} else {
 		if attachErr := tc.AttachBPFProg(maps.SysE4lb, dev, true, true); attachErr != nil {
-			log.Fatal().Err(attachErr).Msgf("fail to attach %s link: %d", dev, iface.Index)
+			log.Error().Err(attachErr).Msgf("fail to attach %s link: %d", dev, iface.Index)
+			return false
 		}
 	}
+	return true
 }
 
 func E4lbOff() {

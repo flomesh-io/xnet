@@ -167,9 +167,11 @@ func (s *server) checkAndRepairE4lb() {
 	for {
 		if !s.uninstallProg {
 			if s.enableE4lb {
-				e4lb.E4lbOn()
+				if e4lb.E4lbOn() {
+					break
+				}
 			}
 		}
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * 5)
 	}
 }
