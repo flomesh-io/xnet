@@ -125,7 +125,7 @@ func (s *server) Start() error {
 			e4lb.E4lbOff()
 		} else {
 			load.InitE4lbConfig(s.enableE4lbIPv4, s.enableE4lbIPv6, s.e4lbCfgIPv4Magic, s.e4lbCfgIPv6Magic)
-			go s.checkAndRepairE4lb()
+			s.checkAndRepairE4lb()
 		}
 
 		if !s.enableMesh {

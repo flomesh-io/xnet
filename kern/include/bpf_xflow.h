@@ -209,7 +209,8 @@ xpkt_flow_proc_frag(xpkt_t *pkt, void *fsm_xflow, flow_t *cflow, flow_t *rflow,
 
 INTERNAL(int)
 xpkt_flow_init_reverse_op(xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
-                          void *fsm_xflow, flow_t *flow, flow_op_t *op)
+                          void *fsm_xflow, flow_t *flow, flow_op_t *op,
+                          __u32 rofi, __u32 roflags)
 {
     flow_t rflow;
     flow_op_t *rop;
@@ -245,6 +246,8 @@ xpkt_flow_init_reverse_op(xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
     XADDR_COPY(rop->xnat.raddr, flow->saddr);
     rop->xnat.xport = flow->dport;
     rop->xnat.rport = flow->sport;
+    rop->xnat.ofi = rofi;
+    rop->xnat.oflags = roflags;
     rop->do_trans = 1;
 
     bpf_map_update_elem(fsm_xflow, &rflow, rop, BPF_ANY);
@@ -429,6 +432,19 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
         }
     }
 
+    __u32 rofi = 0;
+    __u32 roflags = 0;
+    if (pkt->tc_dir == TC_DIR_EGR) {
+        if (pkt->flow.sys == SYS_E4LB) {
+            if (pkt->ifi != pkt->ofi) {
+                rofi = pkt->ifi;
+                roflags = op->xnat.oflags;
+                op->nfs[TC_DIR_IGR] = NF_RDIR | NF_XNAT;
+                op->nfs[TC_DIR_EGR] = NF_RDIR | NF_XNAT;
+            }
+        }
+    }
+
     bpf_map_update_elem(fsm_xflow, flow, op, BPF_ANY);
 
 #ifndef FSM_TRACE_FLOW_OFF
@@ -437,7 +453,8 @@ xpkt_flow_init_ops(skb_t *skb, xpkt_t *pkt, cfg_t *cfg, flags_t *flags,
     }
 #endif
 
-    return xpkt_flow_init_reverse_op(pkt, cfg, flags, fsm_xflow, flow, op);
+    return xpkt_flow_init_reverse_op(pkt, cfg, flags, fsm_xflow, flow, op, rofi,
+                                     roflags);
 }
 
 INTERNAL(__s8)
