@@ -64,7 +64,7 @@ jobs:
           echo "GIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Build and Push
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: dockerfiles/Dockerfile
@@ -76,7 +76,7 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
 
       - name: Ubuntu 20.04 Build and Push
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: dockerfiles/Dockerfile.ubuntu.20.04
@@ -88,7 +88,7 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
 
       - name: Ubuntu 22.04 Build and Push
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: dockerfiles/Dockerfile.ubuntu.22.04
@@ -100,7 +100,7 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
 
       - name: Ubuntu 24.04 Build and Push
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: dockerfiles/Dockerfile.ubuntu.24.04
