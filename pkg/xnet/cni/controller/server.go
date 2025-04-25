@@ -120,6 +120,7 @@ func (s *server) Start() error {
 
 	if !s.uninstallProg {
 		load.ProgLoad()
+		s.loadBridges()
 
 		if !s.enableE4lb {
 			e4lb.E4lbOff()
