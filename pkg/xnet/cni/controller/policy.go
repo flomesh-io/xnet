@@ -86,32 +86,8 @@ func (s *server) configMeshPolicies() {
 
 func (s *server) configMeshAclPolicies() {
 	for _, br := range s.cniBridges {
-		ifi, brAddrs, hwAddr, err := s.getBridgeAddrs(br.Name)
-		if err != nil {
-			log.Fatal().Err(err).Msgf(`invalid bridge eth: %s`, br.Name)
-		} else {
-			brKey := new(maps.IFaceKey)
-			brKey.Len = uint8(len(br.Name))
-			copy(brKey.Name[0:brKey.Len], br.Name)
-			brVal := new(maps.IFaceVal)
-			brVal.Ifi = uint32(ifi)
-			if len(br.HardwareAddr) > 0 {
-				copy(brVal.Mac[:], br.HardwareAddr[:])
-			} else {
-				copy(brVal.Mac[:], hwAddr[:])
-			}
-			copy(brVal.Xmac[:], hwAddr[:])
-			for _, brAddr := range brAddrs {
-				if brVal.Addr[0], brVal.Addr[1], brVal.Addr[2], brVal.Addr[3], _, err = util.IPToInt(brAddr); err == nil {
-					break
-				} else {
-					continue
-				}
-			}
-			if err := maps.AddIFaceEntry(brKey, brVal); err != nil {
-				log.Fatal().Err(err).Msgf(`failed to add iface: %s`, brKey.String())
-			}
-
+		if _, brAddrs, _, _ := s.getBridgeAddrs(br.Name); len(brAddrs) > 0 {
+			var err error
 			for _, brAddr := range brAddrs {
 				aclKey := new(maps.AclKey)
 				if aclKey.Addr[0], aclKey.Addr[1], aclKey.Addr[2], aclKey.Addr[3], _, err = util.IPToInt(brAddr); err != nil {
