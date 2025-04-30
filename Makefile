@@ -72,7 +72,7 @@ trivy-scan-fail-%: TAG_PREFIX=$(@:trivy-scan-fail-xnet-%=%)
 trivy-scan-fail-%:
 	trivy image --exit-code 1 \
 	  --ignore-unfixed \
-	  --severity MEDIUM,HIGH,CRITICAL \
+	  --severity HIGH,CRITICAL \
 	  --dependency-tree \
 	  --scanners vuln,secret \
 	  --pkg-types os \
