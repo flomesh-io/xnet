@@ -53,11 +53,13 @@ jobs:
       - name: Docker meta
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v5.7.0
+        env:
+          TAG_PREFIX: ${{ matrix.id != '' && format('{0}-', matrix.id) || '' }}
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/xnet
           tags: |
-            type=semver,pattern=${{ matrix.id == '' && '' || format('{0}-', matrix.id) }}{{major}}.{{minor}}
-            type=semver,pattern=${{ matrix.id == '' && '' || format('{0}-', matrix.id) }}{{major}}.{{minor}}.{{patch}}
+            type=semver,pattern={{major}}.{{minor}},prefix=${{ env.TAG_PREFIX }}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}},prefix=${{ env.TAG_PREFIX }}
           flavor: |
             latest=auto
 
@@ -70,7 +72,7 @@ jobs:
         uses: docker/build-push-action@v6.16.0
         with:
           context: .
-          file: dockerfiles/Dockerfile${{ matrix.id == '' && '' || format('.{0}', matrix.id) }}
+          file: ${{ matrix.id == '' && 'dockerfiles/Dockerfile' || format('dockerfiles/Dockerfile.{0}', matrix.id) }}
           platforms: linux/amd64,linux/arm64
           build-args: |
             LDFLAGS=-X ${{ env.BUILD_DATE_VAR }}=${{ env.BUILD_DATE }} -X ${{ env.BUILD_VERSION_VAR }}=${{ env.VERSION }} -X ${{ env.BUILD_GITCOMMIT_VAR }}=${{ env.GIT_SHA }} -s -w
