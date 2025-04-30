@@ -55,13 +55,14 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v5.7.0
         env:
           TAG_PREFIX: ${{ matrix.id != '' && format('{0}-', matrix.id) || '' }}
+          FLAVOR: ${{ matrix.id == '' && 'true' || 'false' }}
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/xnet
           tags: |
             type=semver,pattern={{major}}.{{minor}},prefix=${{ env.TAG_PREFIX }}
             type=semver,pattern={{major}}.{{minor}}.{{patch}},prefix=${{ env.TAG_PREFIX }}
           flavor: |
-            latest=auto
+            latest=${{ env.FLAVOR }}
 
       - name: Get Build Info
         run: |
