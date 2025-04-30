@@ -53,11 +53,13 @@ jobs:
       - name: Docker meta
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v5.7.0
+        env:
+          TAG_PREFIX: ${{ matrix.id != '' && format('{0}-', matrix.id) || '' }}
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/xnet
           tags: |
-            type=semver,pattern=${{ matrix.id == '' && format('{0}', matrix.id) || format('{0}-', matrix.id) }}{{major}}.{{minor}}
-            type=semver,pattern=${{ matrix.id == '' && format('{0}', matrix.id) || format('{0}-', matrix.id) }}{{major}}.{{minor}}.{{patch}}
+            type=semver,pattern=${{ env.TAG_PREFIX }}{{major}}.{{minor}}
+            type=semver,pattern=${{ env.TAG_PREFIX }}{{major}}.{{minor}}.{{patch}}
           flavor: |
             latest=auto
 
