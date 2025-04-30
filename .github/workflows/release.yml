@@ -58,8 +58,8 @@ jobs:
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/xnet
           tags: |
-            type=semver,pattern=${{ env.TAG_PREFIX }}{{major}}.{{minor}}
-            type=semver,pattern=${{ env.TAG_PREFIX }}{{major}}.{{minor}}.{{patch}}
+            type=semver,pattern={{major}}.{{minor}},prefix=${{ env.TAG_PREFIX }}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}},prefix=${{ env.TAG_PREFIX }}
           flavor: |
             latest=auto
 
