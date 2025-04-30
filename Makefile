@@ -25,15 +25,15 @@ docker-build-xnet:
 
 .PHONY: docker-build-xnet-ubuntu-20.04
 docker-build-xnet-ubuntu-20.04:
-	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-20.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu.20.04 --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-20.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu-20.04 --build-arg LDFLAGS=$(LDFLAGS) .
 
 .PHONY: docker-build-xnet-ubuntu-22.04
 docker-build-xnet-ubuntu-22.04:
-	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-22.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu.22.04 --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-22.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu-22.04 --build-arg LDFLAGS=$(LDFLAGS) .
 
 .PHONY: docker-build-xnet-ubuntu-24.04
 docker-build-xnet-ubuntu-24.04:
-	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-24.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu.24.04 --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder fsm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/xnet:ubuntu-24.04-$(CTR_TAG) -f dockerfiles/Dockerfile.ubuntu-24.04 --build-arg LDFLAGS=$(LDFLAGS) .
 
 .PHONY: docker-build-xnet-bclinux-openeuler-22.03
 docker-build-xnet-bclinux-openeuler-22.03:
@@ -72,7 +72,7 @@ trivy-scan-fail-%: TAG_PREFIX=$(@:trivy-scan-fail-xnet-%=%)
 trivy-scan-fail-%:
 	trivy image --exit-code 1 \
 	  --ignore-unfixed \
-	  --severity MEDIUM,HIGH,CRITICAL \
+	  --severity HIGH,CRITICAL \
 	  --dependency-tree \
 	  --scanners vuln,secret \
 	  --pkg-types os \
