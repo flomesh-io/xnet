@@ -11,8 +11,8 @@ updates:
       - "area/xnet"
       - "enhancement"
       - "github-actions"
-    # Milestone v1.5.0
-    milestone: 1
+    # Milestone v1.5.1
+    milestone: 3
     groups:
       actions-deps:
         patterns:
@@ -28,8 +28,8 @@ updates:
       - "area/xnet"
       - "enhancement"
       - "dependencies"
-    # Milestone v1.5.0
-    milestone: 1
+    # Milestone v1.5.1
+    milestone: 3
     groups:
       k8s:
         patterns:
