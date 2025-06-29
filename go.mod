@@ -3,7 +3,7 @@ module github.com/flomesh-io/xnet
 go 1.24
 
 require (
-	github.com/cilium/ebpf v0.18.0
+	github.com/cilium/ebpf v0.19.0
 	github.com/containernetworking/cni v1.3.0
 	github.com/cskr/pubsub v1.0.2
 	github.com/florianl/go-tc v0.4.5
