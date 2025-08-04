@@ -38,7 +38,7 @@ func newArpAnnounce() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
-	arpAnnounce.arpEntry.addFlags(f)
+	arpAnnounce.addFlags(f)
 	return cmd
 }
 

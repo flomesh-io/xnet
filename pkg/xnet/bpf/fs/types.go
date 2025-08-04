@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	fsMagic = int64(0xCAFE4A11)
+	fsMagic = 0xCAFE4A11
 )
 
 var (

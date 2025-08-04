@@ -150,7 +150,7 @@ func (t *FlowTCPVal) String() string {
 		`}`+
 		`}`+
 		`}`,
-		_flow_dir_(t.FlowDir), _bool_(t.DoTrans), _bool_(t.Fin),
+		_flow_dir_(t.FlowDir), _bool_(t.DoTrans), _bool_(t.Fin), //nolint:staticcheck
 		_duration_(t.Atime),
 		_nf_(t.Nfs[0]), _nf_(t.Nfs[1]),
 		_mac_(t.Xnat.Xmac[:]), _mac_(t.Xnat.Rmac[:]),
