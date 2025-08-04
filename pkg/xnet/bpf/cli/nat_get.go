@@ -33,7 +33,7 @@ func newNatGet() *cobra.Command {
 
 	//add flags
 	f := cmd.Flags()
-	natGet.sys.addFlags(f)
+	natGet.addFlags(f)
 	natGet.sa.addFlags(f)
 	natGet.proto.addFlags(f)
 	natGet.tc.addFlags(f)

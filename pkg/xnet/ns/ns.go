@@ -136,7 +136,7 @@ func GetNS(nspath string) (NetNS, error) {
 	if !strings.EqualFold(absPath, nspath) &&
 		!strings.HasPrefix(absPath, safeHostNetnsDir) &&
 		!strings.HasPrefix(absPath, safeVarRunNetnsDir) &&
-		!(strings.HasPrefix(absPath, safeNetnsDirPrefix) && strings.HasSuffix(absPath, safeNetnsDirSuffix)) {
+		(!strings.HasPrefix(absPath, safeNetnsDirPrefix) || !strings.HasSuffix(absPath, safeNetnsDirSuffix)) {
 		return nil, fmt.Errorf("invalid namespace path: %s absPath: %s error:%v", nspath, absPath, err)
 	}
 
@@ -203,7 +203,7 @@ func (ns *netNS) Do(toRun func(NetNS) error) error {
 	// save a handle to current network namespace
 	hostNS, err := GetCurrentNS()
 	if err != nil {
-		return fmt.Errorf("Failed to open current namespace: %v", err)
+		return fmt.Errorf("failed to open current namespace: %v", err)
 	}
 	defer func(hostNS NetNS) {
 		_ = hostNS.Close()

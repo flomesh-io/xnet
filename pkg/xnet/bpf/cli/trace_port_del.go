@@ -35,7 +35,7 @@ func newTracePortDel() *cobra.Command {
 	//add flags
 	f := cmd.Flags()
 	tracePortDel.sys.addFlags(f)
-	tracePortDel.sa.addPortFlag(f)
+	tracePortDel.addPortFlag(f)
 
 	return cmd
 }
