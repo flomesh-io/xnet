@@ -21,9 +21,9 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	golang.org/x/sys v0.36.0
 	golang.org/x/time v0.13.0
-	k8s.io/api v0.32.8
-	k8s.io/apimachinery v0.32.8
-	k8s.io/client-go v0.32.8
+	k8s.io/api v0.32.9
+	k8s.io/apimachinery v0.32.9
+	k8s.io/client-go v0.32.9
 )
 
 require (
