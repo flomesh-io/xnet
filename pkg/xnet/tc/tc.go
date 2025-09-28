@@ -103,8 +103,8 @@ func addBPFFilter(rtnl *tc.Tc, ifIndex, parent, progFD uint32) error {
 			// Handle:  0,
 			Parent: parent, // ingress
 			Info: core.BuildHandle(
-				66,     // prio
-				0x0300, // protocol
+				TCFilterPriority, // prio
+				TCProtocol,       // protocol
 			),
 		},
 		Attribute: tc.Attribute{
@@ -112,7 +112,7 @@ func addBPFFilter(rtnl *tc.Tc, ifIndex, parent, progFD uint32) error {
 			BPF: &tc.Bpf{
 				FD:    uint32Ptr(progFD),
 				Name:  stringPtr(fmt.Sprintf("%s_%d", TC_BPF_FILTER_PREFIX, progFD)),
-				Flags: uint32Ptr(0x1),
+				Flags: uint32Ptr(TCBPFFlags),
 			},
 		},
 	}
@@ -127,8 +127,8 @@ func deleteBPFFilter(rtnl *tc.Tc, ifIndex, parent, progFD uint32) error {
 			// Handle:  0,
 			Parent: parent, // ingress
 			Info: core.BuildHandle(
-				66,     // prio
-				0x0300, // protocol
+				TCFilterPriority, // prio
+				TCProtocol,       // protocol
 			),
 		},
 		Attribute: tc.Attribute{
@@ -136,7 +136,7 @@ func deleteBPFFilter(rtnl *tc.Tc, ifIndex, parent, progFD uint32) error {
 			BPF: &tc.Bpf{
 				FD:    uint32Ptr(progFD),
 				Name:  stringPtr(fmt.Sprintf("%s_%d", TC_BPF_FILTER_PREFIX, progFD)),
-				Flags: uint32Ptr(0x1),
+				Flags: uint32Ptr(TCBPFFlags),
 			},
 		},
 	}

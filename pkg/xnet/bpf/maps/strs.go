@@ -8,6 +8,25 @@ import (
 	"github.com/flomesh-io/xnet/pkg/xnet/util"
 )
 
+// TCP State constants
+const (
+	TCPStateClosed   = 0x0
+	TCPStateSynSend  = 0x1
+	TCPStateSynAck   = 0x2
+	TCPStateEst      = 0x4
+	TCPStateErr      = 0x08
+	TCPStateFini     = 0x10
+	TCPStateFin2     = 0x20
+	TCPStateFin3     = 0x40
+	TCPStateCwt      = 0x80
+)
+
+// Flow direction constants
+const (
+	FlowDirC2S = 0
+	FlowDirS2C = 1
+)
+
 func SysName(sysId SysID) string {
 	return _sys_(uint32(sysId))
 }
@@ -88,9 +107,9 @@ func _acl_(acl uint8) string {
 
 func _flow_dir_(flowDir uint8) string {
 	switch flowDir {
-	case 0:
+	case FlowDirC2S:
 		return "FLOW_DIR_C2S"
-	case 1:
+	case FlowDirS2C:
 		return "FLOW_DIR_S2C"
 	default:
 		return ""
@@ -98,21 +117,21 @@ func _flow_dir_(flowDir uint8) string {
 }
 
 func _nf_(nf uint8) string {
-	if nf == 0 {
+	if nf == NF_DENY {
 		return "NF_DENY"
 	}
 
 	desc := ""
-	if nf&1 == 1 {
+	if nf&NF_ALLOW == NF_ALLOW {
 		desc += "NF_ALLOW "
 	}
-	if nf&2 == 2 {
+	if nf&NF_XNAT == NF_XNAT {
 		desc += "NF_XNAT "
 	}
-	if nf&4 == 4 {
+	if nf&NF_RDIR == NF_RDIR {
 		desc += "NF_RDIR "
 	}
-	if nf&8 == 8 {
+	if nf&NF_SKIP_SM == NF_SKIP_SM {
 		desc += "NF_SKIP_SM "
 	}
 	return strings.TrimSpace(desc)
@@ -120,23 +139,23 @@ func _nf_(nf uint8) string {
 
 func _tcp_state_(state uint8) string {
 	switch state {
-	case 0x0:
+	case TCPStateClosed:
 		return "TCP_STATE_CLOSED"
-	case 0x1:
+	case TCPStateSynSend:
 		return "TCP_STATE_SYN_SEND"
-	case 0x2:
+	case TCPStateSynAck:
 		return "TCP_STATE_SYN_ACK"
-	case 0x4:
+	case TCPStateEst:
 		return "TCP_STATE_EST"
-	case 0x08:
+	case TCPStateErr:
 		return "TCP_STATE_ERR"
-	case 0x10:
+	case TCPStateFini:
 		return "TCP_STATE_FINI"
-	case 0x20:
+	case TCPStateFin2:
 		return "TCP_STATE_FIN2"
-	case 0x40:
+	case TCPStateFin3:
 		return "TCP_STATE_FIN3"
-	case 0x80:
+	case TCPStateCwt:
 		return "TCP_STATE_CWT"
 	default:
 		return ""
@@ -144,9 +163,18 @@ func _tcp_state_(state uint8) string {
 }
 
 func _write_(sb *strings.Builder, str string) {
-	if cnt, err := sb.WriteString(str); err != nil {
-		log.Error().Err(err).Msgf("fail to write string: %s", str)
-	} else if cnt != len(str) {
-		log.Error().Msgf("fail to write string: %s", str)
+	if sb == nil {
+		log.Error().Msg("strings.Builder is nil")
+		return
+	}
+	
+	cnt, err := sb.WriteString(str)
+	if err != nil {
+		log.Error().Err(err).Msgf("failed to write string: %s", str)
+		return
+	}
+	
+	if cnt != len(str) {
+		log.Error().Msgf("incomplete write: expected %d bytes, wrote %d bytes for string: %s", len(str), cnt, str)
 	}
 }
