@@ -52,7 +52,7 @@ jobs:
 
       - name: Docker meta
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v5.8.0
+        uses: crazy-max/ghaction-docker-meta@v5.9.0
         env:
           TAG_PREFIX: ${{ matrix.id != '' && format('{0}-', matrix.id) || '' }}
           FLAVOR: ${{ matrix.id == '' && 'true' || 'false' }}
