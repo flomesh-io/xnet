@@ -7,7 +7,7 @@ require (
 	github.com/containernetworking/cni v1.3.0
 	github.com/cskr/pubsub v1.0.2
 	github.com/florianl/go-tc v0.4.7
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.10.0
 	github.com/go-co-op/gocron/v2 v2.19.1
 	github.com/gorilla/mux v1.8.1
 	github.com/mdlayher/arp v0.0.0-20220512170110-6706a2966875
