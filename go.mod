@@ -1,6 +1,6 @@
 module github.com/flomesh-io/xnet
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/cilium/ebpf v0.20.0
@@ -19,7 +19,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/vishvananda/netlink v1.3.1
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.45.0
 	golang.org/x/time v0.14.0
 	k8s.io/api v0.32.11
 	k8s.io/apimachinery v0.32.11
