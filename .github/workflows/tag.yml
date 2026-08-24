@@ -3,6 +3,9 @@ on:
   repository_dispatch:
     types: [fsm-release]
 
+permissions:
+  contents: write
+
 jobs:
   create-tag:
     runs-on: ubuntu-latest
@@ -10,7 +13,7 @@ jobs:
       - name: Create tag
         uses: actions/github-script@v8
         with:
-          github-token: ${{ secrets.REPOSITORY_DISPATCH_PAT }}
+          github-token: ${{ github.token }}
           script: |
             github.rest.git.createRef({
               owner: context.repo.owner,
@@ -27,4 +30,3 @@ jobs:
                 force: true
               });
             })
-
